@@ -46,7 +46,7 @@ No command line needed:
 1. Cloudflare dashboard → **Storage & Databases → D1 → Create database**, name it `linedrive`. Open its **Console** and run the contents of `leaderboard/schema.sql`.
 2. **Workers & Pages → Create → Worker**, name it `linedrive-leaderboard`, deploy the starter, then **Edit code**, replace everything with `leaderboard/src/index.js`, and deploy.
 3. Worker → **Settings → Bindings → Add → D1 database**: variable name `DB`, database `linedrive`.
-4. Copy the Worker URL (e.g. `https://linedrive-leaderboard.<you>.workers.dev`) into `eas.json` → `EXPO_PUBLIC_LEADERBOARD_URL`.
+4. Copy the Worker URL (e.g. `https://linedrive-leaderboard.<you>.workers.dev`) into `eas.json` as `build.base.env.EXPO_PUBLIC_LEADERBOARD_URL` (add the line; EAS rejects an empty value).
 
 Or with Wrangler: put the database ID in `leaderboard/wrangler.toml`, then `npx wrangler d1 execute linedrive --remote --file=schema.sql` and `npx wrangler deploy` from `leaderboard/`.
 
