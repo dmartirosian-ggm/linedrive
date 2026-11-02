@@ -10,7 +10,6 @@
     "backgroundColor": "#07030f",
     "ios": {
       "bundleIdentifier": "com.gbymedia.linedrive",
-      "buildNumber": "1",
       "supportsTablet": true,
       "requireFullScreen": true,
       "infoPlist": {
