@@ -31,6 +31,12 @@
           "resizeMode": "contain"
         }
       ]
-    ]
+    ],
+    "owner": "gbymediallc",
+    "extra": {
+      "eas": {
+        "projectId": "56077049-ce45-4e8e-93c4-93799bf85326"
+      }
+    }
   }
 }
