@@ -23,7 +23,7 @@ html:not(.running) #hudLeft,html:not(.running) #spdHud{visibility:hidden}
 html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink);font-family:var(--ui);-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 .hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
-  padding-top:calc(14px + env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none;z-index:5}
+  padding-top:calc(14px + env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none;z-index:9}
 .dist{font-size:clamp(34px,7vw,64px);font-weight:700;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:.02em;text-shadow:0 0 18px var(--hot),0 0 2px #fff}
 .dist small{font-size:.38em;color:var(--dim);margin-left:.15em;text-shadow:none;letter-spacing:.1em}
 .sub{margin-top:6px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-variant-numeric:tabular-nums}
@@ -197,6 +197,7 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
 <!--INLINE:three/examples/js/postprocessing/RenderPass.js-->
 <!--INLINE:three/examples/js/postprocessing/ShaderPass.js-->
 <!--INLINE:three/examples/js/postprocessing/UnrealBloomPass.js-->
+<!--MUSIC-->
 <script>
 (function(){
 "use strict";
@@ -634,7 +635,7 @@ function startRun(){
   player.visible=true; debris.visible=false; hist.length=0;
   el('menu').hidden=true; el('dead').hidden=true;
   S.flash=0.35; S.aberr=0.02; S.fovKick=8;
-  audioRestore();
+  audioRestore(); startTrack();
   document.documentElement.classList.add('running');
 }
 function setPalette(i){ S.zone=i; const p=PALETTES[i%PALETTES.length]; tgtA.set(p[0]); tgtB.set(p[1]); }
@@ -949,9 +950,57 @@ function initAudio(){
   A.music=ctx.createGain(); A.music.gain.value=0.5; A.music.connect(A.lp); A.lp.connect(A.master);
   A.sfx=ctx.createGain(); A.sfx.gain.value=0.55; A.sfx.connect(A.master);
   const nb=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate); const d=nb.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; A.noise=nb;
+  A.trackGain=ctx.createGain(); A.trackGain.gain.value=0.62; A.trackGain.connect(A.lp);
   A.t0=ctx.currentTime+0.06; A.next=A.t0; A.step=0;
   setInterval(schedule,25);
+  loadTracks();
 }
+
+/* ---------- recorded music: one track per run, alternating ---------- */
+// Both tracks are 128 BPM; the first downbeat lands TRACK_OFFSET s into the file.
+const TRACKS=[{name:'Arcade Velocity',file:'arcade-velocity.mp3'},{name:'Arcade Loop Run',file:'arcade-loop-run.mp3'}];
+const TRACK_OFFSET=0.037, TRACK_LOOP=256*60/BPM; // 256 beats = 120 s, loops on the bar
+function b64ToBuf(b64){const bin=atob(b64),n=bin.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
+function decode(buf){return new Promise((res,rej)=>{try{const p=A.ctx.decodeAudioData(buf,res,rej);if(p&&p.then)p.then(res,rej);}catch(e){rej(e);}});}
+async function loadTrack(i){
+  const t=TRACKS[i]; if(t.buffer||t.loading)return t.loading;
+  t.loading=(async()=>{
+    try{
+      const emb=window.__LD_MUSIC&&window.__LD_MUSIC[t.file];
+      const buf=emb?b64ToBuf(emb):await (await fetch('music/'+t.file)).arrayBuffer();
+      t.buffer=await decode(buf);
+      if(window.__LD_MUSIC)delete window.__LD_MUSIC[t.file]; // free the encoded copy
+    }catch(e){t.failed=true;}
+  })();
+  return t.loading;
+}
+async function loadTracks(){
+  const first=store.get('ld_track',0)%TRACKS.length;
+  await loadTrack(first);                    // the next run's track first
+  loadTrack((first+1)%TRACKS.length);        // then the other one
+}
+function startTrack(){
+  stopTrack();
+  if(!A.ctx)return;
+  const i=store.get('ld_track',0)%TRACKS.length, t=TRACKS[i];
+  if(!t.buffer){loadTrack(i);return;}        // not decoded yet: this run uses the synth
+  store.set('ld_track',(i+1)%TRACKS.length); // next run gets the other track
+  const src=A.ctx.createBufferSource(); src.buffer=t.buffer;
+  src.loop=true; src.loopStart=0; src.loopEnd=Math.min(TRACK_LOOP,t.buffer.duration);
+  src.connect(A.trackGain);
+  const at=A.ctx.currentTime+0.03; src.start(at,0);
+  A.track=src; A.trackName=t.name;
+  A.t0=at+TRACK_OFFSET;                      // beat clock follows the track
+}
+function stopTrack(){
+  if(!A.track)return;
+  const src=A.track, g=A.trackGain.gain, now=A.ctx.currentTime;
+  A.track=null;
+  g.cancelScheduledValues(now); g.setValueAtTime(g.value,now); g.linearRampToValueAtTime(0,now+0.08);
+  try{src.stop(now+0.09);}catch(e){}
+  setTimeout(()=>{if(A.ctx){const t=A.ctx.currentTime;A.trackGain.gain.cancelScheduledValues(t);A.trackGain.gain.setValueAtTime(0.62,t);}},120);
+}
+document.addEventListener('visibilitychange',()=>{if(!A.ctx)return;if(document.hidden)A.ctx.suspend();else A.ctx.resume();});
 const ROOTS=[55,43.65,65.41,49.0], CH=[[0,3,7,12],[0,4,7,11],[0,4,7,12],[0,4,7,10]];
 function schedule(){
   const ctx=A.ctx; if(!ctx)return;
@@ -959,6 +1008,7 @@ function schedule(){
 }
 function musicLevel(){ if(S.state==='menu')return 0; return 1+Math.min(3,Math.floor(S.pd/220)); }
 function playStep(st,time){
+  if(A.track)return;
   const s=st%16, bar=Math.floor(st/16)%4, lv=musicLevel();
   if(s%4===0&&lv>=1)kick(time);
   if(lv===0&&s===0)kick(time,0.5);

@@ -74,6 +74,8 @@ The first build asks to link the Expo project and to sign in to your Apple accou
 
 ## Game notes
 
+- Music: every `.mp3` in `game/music/` is embedded in the app (`npm run build:game`). Runs alternate between the tracks and each run starts its track from the top. Tracks must be 128 BPM so the beat-synced visuals line up; the first downbeat offset is `TRACK_OFFSET` in `game/index.html`. Add a track by dropping in the file and adding it to `TRACKS`. Encode at 128 kbps (`ffmpeg -i in.mp3 -b:a 128k out.mp3`) to keep the app small. The built-in synth still plays on the menu and as a fallback.
+
 - The course is seeded (`SEED` in `game/index.html`), so every run is the same track. Change the seed for a new track; old leaderboard scores won't be comparable.
 - Graphics start on high and drop to low automatically if the first run averages under ~44 fps. Players can switch with the Graphics button.
 - Skins: Core (free), Volt (reach 300 m), Ember (reach 800 m), and four paid skins. Product IDs are defined in both `game/index.html` and `src/config.ts`; keep them in sync.

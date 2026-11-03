@@ -27,6 +27,7 @@ Before load, the app injects `window.__LD_SAVE` (saved data) and `window.__LD_CO
 - Squash and stretch on jump and land, mid-air flip that snaps to 90°, lean while steering.
 - Afterimage ghosts, trail particles, landing dust, near-miss sparks with a "CLOSE" callout.
 - Death: slow motion, debris cubes, particle burst, screen flash, chromatic aberration spike, low-pass sweep on the music.
+- Recorded tracks (Suno, 128 BPM) alternate per run and restart from the top each run, so the music is tied to the course like The Impossible Game. The synth plays on the menu.
 - Everything pulses on the beat (grid, sun, portals, bloom, FOV). Music is synthesized with WebAudio and gains layers as distance grows.
 - Palette shifts every 300 m, milestone popup and chime every 100 m.
 - Jump buffer (130 ms) and coyote time (90 ms). Holding jump keeps hopping.
@@ -61,6 +62,8 @@ Before load, the app injects `window.__LD_SAVE` (saved data) and `window.__LD_CO
 - **EAS env:** `eas.json` rejects empty-string env values; leave the key out instead.
 - **Build numbers:** `appVersionSource: remote` plus `autoIncrement` means you shouldn't set `ios.buildNumber` in `app.json`.
 - **Hidden elements:** a standalone HTML page needs its own `[hidden]{display:none!important}`. Without it, hidden overlays block taps (the claude.ai artifact wrapper had been supplying it).
+- **Recorded music:** embed MP3s as base64 and play them with WebAudio (`decodeAudioData` + looping `AudioBufferSource`) so the low-pass death sweep and beat sync still work. Keep the base64 in its own ASCII-only string literal and join at runtime with `[a, b, c].join('')`: Hermes stores any string containing a non-ASCII character at 2 bytes per char, and `a + b` gets constant-folded into one string (15 MB vs 10 MB bundle).
+- **Overlay stacking:** keep the top bar's z-index above full-screen menus, or its buttons (sound, graphics) become untappable on the menu.
 - **Testing without a phone:** headless Chrome via Playwright (`/usr/bin/google-chrome`, swiftshader flags) can load `dist/game.html` with a fake `ReactNativeWebView` to test the bridge and take screenshots.
 
 ## Linedrive status (Nov 1, 2026)
