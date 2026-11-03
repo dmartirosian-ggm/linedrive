@@ -10,8 +10,7 @@
     "backgroundColor": "#07030f",
     "ios": {
       "bundleIdentifier": "com.gbymedia.linedrive",
-      "supportsTablet": true,
-      "requireFullScreen": true,
+      "supportsTablet": false,
       "infoPlist": {
         "UIStatusBarHidden": true,
         "UIViewControllerBasedStatusBarAppearance": false,
