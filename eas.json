@@ -6,7 +6,7 @@
   "build": {
     "base": {
       "env": {
-        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_yeWDZqbgLzbPpkNPHhXYXeWPQvf"
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_LfaKJjVsVotMoRywlDaBvxcJhzo"
       }
     },
     "preview": {

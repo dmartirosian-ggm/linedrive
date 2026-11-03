@@ -49,7 +49,7 @@ Before load, the app injects `window.__LD_SAVE` (saved data) and `window.__LD_CO
 3. **Bundle ID:** Dave registers it at developer.apple.com → Identifiers (team GBY Media LLC, B7HPM349K9). App Store Connect's New App form only lists registered IDs.
 4. **App Store Connect app:** Dave creates it; Claude puts its Apple ID in `eas.json` → `submit.production.ios.ascAppId`.
 5. **Signing credentials (one time per app):** from any computer, run `npx eas-cli@latest credentials --platform ios` in the repo and choose production. The Expo connector's token is view-and-run only, so builds fail with "Entity not authorized … AppleAppIdentifier CREATE" until this is done.
-6. **RevenueCat (connector):** in project `proj4109f1ac` (GBY Media LLC), create the App Store app with `copy_subscription_key_from_app_id: appab13df11c7` (Spark's In-App Purchase key), register products with `create-product`, then fetch the `appl_` key with `list-app-public-api-keys` and put it in `eas.json` env.
+6. **RevenueCat (connector):** one RevenueCat project per app (`create-project`, then `create-app` with the bundle ID). Upload the In-App Purchase key (.p8) to the new app in the dashboard (keys can't be copied across projects). Register products with `create-product`, then fetch the `appl_` key with `list-app-public-api-keys` and put it in `eas.json` env.
 7. **Store products:** RevenueCat can create the in-app purchases in App Store Connect (store state plans) once the app has an **App Store Connect API key (Team Key)**. That's a different key from the In-App Purchase key. Otherwise create them by hand in App Store Connect. The Paid Applications agreement must be active.
 8. **Build:** Expo connector `build_run` (platform IOS, profile production, gitRef main, autoSubmit true). Check with `build_info`; read `build_logs` on failure.
 
@@ -71,6 +71,6 @@ Before load, the app injects `window.__LD_SAVE` (saved data) and `window.__LD_CO
 - Code: `dmartirosian-ggm/linedrive` on `main`. Web prototype artifact also exists on claude.ai.
 - Expo: `@gbymediallc/linedrive`, project ID `56077049-ce45-4e8e-93c4-93799bf85326`.
 - App Store Connect: "Linedrive Neon Runner", Apple ID `6829575701`, bundle `com.gbymedia.linedrive`.
-- RevenueCat: app `app0cb7f88991` in project `proj4109f1ac`; 5 products registered; public key in `eas.json`.
+- RevenueCat: own project `projd06ea63b` (Linedrive), app `app7f3c2e9903`; 5 products registered; public key in `eas.json`. Needs the In-App Purchase key uploaded in the dashboard. The old Linedrive app inside the GBY Media LLC project should be deleted.
 - First build (`5fca04f7…`) failed on signing credentials. **Next:** run `eas credentials` once, then rebuild with auto-submit to TestFlight.
 - Still to do: create the 5 in-app purchases in App Store Connect (needs a Team Key in RevenueCat, or do it by hand); optionally deploy the leaderboard Worker and set `EXPO_PUBLIC_LEADERBOARD_URL`; App Store screenshots, privacy details, review submission.
