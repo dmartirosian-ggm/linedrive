@@ -1,0 +1,65 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "copyright": "2026 GBY Media LLC",
+    "categories": [
+      [
+        "GAMES",
+        "GAMES_ACTION"
+      ],
+      "ENTERTAINMENT"
+    ],
+    "info": {
+      "en-US": {
+        "title": "Linedrive Neon Runner",
+        "subtitle": "A neon 3D arcade runner",
+        "promoText": "Every run is on the same track, so each attempt teaches you more of it. Jump, steer and slip through the gaps to set a new best distance.",
+        "description": "Linedrive is a 3D arcade runner. You control a glowing cube on a neon track: jump spikes and pits, land on blocks, and steer through the gaps in walls. The track speeds up the farther you get, and one mistake ends the run.\n\nThe course is the same every time. You won't clear it on your first try, but every attempt shows you a little more of what's coming, and retrying takes one tap. The music restarts with each run, so the beat lines up with the track you're learning.\n\nControls are simple. Use the thumbstick on the left to steer and the button on the right to jump. Hold Jump to keep hopping.\n\nFeatures:\n- A neon synthwave world with glowing effects and a beat that pulses through the track\n- Two original soundtracks that alternate between runs\n- Haptic feedback on jumps, landings, close calls and crashes\n- Unlock new cube skins by reaching distance goals\n- Optional premium skins, bought once and kept forever\n- No ads, no account and no internet connection needed\n- Low graphics mode for older iPhones\n\nLinedrive is free to play. Premium skins are cosmetic and don't change how the game plays.",
+        "keywords": [
+          "runner",
+          "arcade",
+          "neon",
+          "cube",
+          "jump",
+          "dash",
+          "reflex",
+          "synthwave",
+          "endless",
+          "3d",
+          "hard",
+          "retro",
+          "rhythm",
+          "skill",
+          "obstacle",
+          "dodge"
+        ],
+        "releaseNotes": "First release.",
+        "marketingUrl": "https://gbymedia.co/linedrive/",
+        "supportUrl": "https://gbymedia.co/linedrive/support/",
+        "privacyPolicyUrl": "https://gbymedia.co/linedrive/privacy/"
+      }
+    },
+    "advisory": {
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "gambling": false,
+      "unrestrictedWebAccess": false,
+      "kidsAgeBand": null,
+      "ageRatingOverride": "NONE",
+      "koreaAgeRatingOverride": "NONE"
+    },
+    "release": {
+      "automaticRelease": false
+    }
+  }
+}
