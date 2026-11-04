@@ -13,6 +13,7 @@ import Purchases, {
 
 import { GAME_HTML } from './src/gameHtml';
 import { LEADERBOARD_URL, PRODUCT_IDS, REVENUECAT_IOS_KEY } from './src/config';
+import { showInterstitial, startAds } from './src/ads';
 
 // react-native-webview's class typing collapses to `never` under current TypeScript;
 // describe just the parts we use.
@@ -28,7 +29,9 @@ type GameMessage =
   | { t: 'save'; k: string; v: unknown }
   | { t: 'haptic'; s: string }
   | { t: 'buy'; id: string }
-  | { t: 'restore' };
+  | { t: 'restore' }
+  | { t: 'adsOn' }
+  | { t: 'ad' };
 
 let purchasesConfigured = false;
 function configurePurchases(): boolean {
@@ -168,6 +171,16 @@ export default function App() {
           break;
         case 'restore':
           restore();
+          break;
+        case 'adsOn':
+          // Sent by the game only for players who haven't bought anything.
+          startAds();
+          break;
+        case 'ad':
+          startAds()
+            .then((ok) => (ok ? showInterstitial() : false))
+            .then((shown) => toGame({ t: 'adResult', shown }))
+            .catch(() => toGame({ t: 'adResult', shown: false }));
           break;
       }
     },

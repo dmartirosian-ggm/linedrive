@@ -28,6 +28,22 @@
           "imageWidth": 180,
           "resizeMode": "contain"
         }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "Linedrive uses this to show you more relevant ads. You can still play everything if you say no."
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "delayAppMeasurementInit": true,
+          "skAdNetworkItems": [
+            "cstr6suwn9.skadnetwork"
+          ]
+        }
       ]
     ],
     "owner": "gbymediallc",

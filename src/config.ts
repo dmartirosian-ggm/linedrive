@@ -26,3 +26,9 @@ export const PRODUCT_IDS = [
   PID + 'world.winter',
   PID + 'skins.all',
 ];
+
+/**
+ * AdMob interstitial ad unit for iOS. Until a real unit is set in eas.json
+ * (EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS), Google's test ad is used, which earns nothing.
+ */
+export const ADMOB_INTERSTITIAL_IOS = process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS ?? '';

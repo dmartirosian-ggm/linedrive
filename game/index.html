@@ -771,7 +771,7 @@ function die(){
   debris.instanceColor.needsUpdate=true; debris.visible=true;
   player.visible=false; for(const g of ghosts)g.visible=false;
   document.documentElement.classList.remove('running'); releaseAllPointers();
-  sfxCrash(); audioDuck(); haptic('death');
+  sfxCrash(); audioDuck(); haptic('death'); adNoteDeath();
   const sc=Math.floor(S.pd); S.score=sc;
   const prevBest=S.best;
   const newBest=sc>S.best; if(newBest){S.best=sc;store.set('ld_best',sc);el('bestHud').textContent=sc;}
@@ -977,9 +977,28 @@ function ensureTag(){let t=cleanTag(tagInput.value);if(!t){t='RUNNER-'+(100+Math
 tagInput.addEventListener('input',()=>{const c=cleanTag(tagInput.value);if(c!==tagInput.value.toUpperCase().trim())tagInput.value=c;});
 tagInput.addEventListener('change',()=>{const t=ensureTag();renameRemote(t);});
 
+/* ---------- interstitial ads (iOS app only, never during a run) ----------
+   Shown when the player taps Retry, at most once every 3 runs and 2 minutes,
+   never in the first 3 runs of a session. Any purchase turns ads off. */
+const ADS={deaths:0,sinceAd:0,lastAd:Date.now(),waiting:false,on:false};
+const adsEligible=()=>NATIVE&&owned.size===0;
+function adNoteDeath(){
+  ADS.deaths++; ADS.sinceAd++;
+  if(!ADS.on&&ADS.deaths>=2&&adsEligible()){ADS.on=true;send({t:'adsOn'});}
+}
+function adDue(){return adsEligible()&&ADS.on&&ADS.deaths>=3&&ADS.sinceAd>=3&&Date.now()-ADS.lastAd>120000;}
+handlers.adResult=m=>{
+  ADS.waiting=false;
+  if(m.shown){ADS.sinceAd=0;ADS.lastAd=Date.now();}
+  if(S.state==='dead'){el('menu').hidden=true;startRun();}
+};
 function tryStart(){
+  if(ADS.waiting)return true;
   if(S.state==='menu'){ensureTag();tagInput.blur();startRun();return true;}
-  if(S.state==='dead'&&S.deadT>0.35){el('menu').hidden=true;startRun();return true;}
+  if(S.state==='dead'&&S.deadT>0.35){
+    if(adDue()){ADS.waiting=true;if(A.ctx&&A.started)A.ctx.suspend();send({t:'ad'});
+      setTimeout(()=>{if(ADS.waiting)handlers.adResult({shown:false});},90000);return true;}
+    el('menu').hidden=true;startRun();return true;}
   return false;
 }
 el('startBtn').addEventListener('click',e=>{e.stopPropagation();tryStart();});
@@ -1304,7 +1323,7 @@ function renderShop(){
   if(!NATIVE){bb.textContent='iOS app only';bb.disabled=true;}
   else if(prices[BUNDLE]){bb.textContent=buying===BUNDLE?'Buying…':'Unlock all · '+prices[BUNDLE];bb.disabled=!!buying;}
   else{bb.textContent=storeReady?'Unavailable':'Loading…';bb.disabled=true;}
-  el('shopNote').textContent=NATIVE?'One-time purchases. They restore on any device signed in to your Apple ID.':'Premium items are sold in the Linedrive iOS app.';
+  el('shopNote').textContent=NATIVE?'One-time purchases. Any purchase also turns off ads. They restore on any device signed in to your Apple ID.':'Premium items are sold in the Linedrive iOS app.';
   el('restoreBtn').hidden=!NATIVE;
 }
 function equip(cat,id){eq[cat]=id;store.set(CATS[cat].key,id);if(cat==='world'){worldId=id;applyWorld();}haptic('select');renderShop();}
