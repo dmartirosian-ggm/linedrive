@@ -60,6 +60,14 @@
     },
     "release": {
       "automaticRelease": false
+    },
+    "review": {
+      "firstName": "David",
+      "lastName": "Martirosian",
+      "email": "info@gbymedia.co",
+      "phone": "+1 917 364 6832",
+      "demoRequired": false,
+      "notes": "No account or login is needed. Tap Run to play. Skins can be bought from the Skins button on the main menu; Restore purchases is at the bottom of that screen."
     }
   }
 }
