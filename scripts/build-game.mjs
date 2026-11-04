@@ -2,8 +2,9 @@
 // Inlines three.js (pinned 0.147.0) and the two fonts, so the game needs no network.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let html = readFileSync(path.join(root, 'game/index.html'), 'utf8');
 
 html = html.replace(/<!--INLINE:([^>]+?)-->/g, (_, spec) => {
