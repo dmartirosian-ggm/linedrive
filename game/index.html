@@ -108,6 +108,15 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
 .skin button{width:100%;padding:10px;font:700 13px var(--ui);letter-spacing:.14em;text-transform:uppercase;border-radius:2px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink)}
 .skin button.buy{background:#fff;color:var(--void);border-color:#fff}
 .skin button[disabled]{opacity:.45;cursor:default}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--dim);font:700 13px var(--ui);letter-spacing:.16em;text-transform:uppercase;padding:10px 12px;cursor:pointer;margin-bottom:-1px}
+.tabs button.on{color:#fff;border-bottom-color:var(--hot)}
+.swatch.tx{background-size:cover;background-position:center;border-width:2px}
+.tsw{height:66px;width:100%;display:flex;align-items:center;font-size:26px;letter-spacing:4px;overflow:hidden;white-space:nowrap}
+.tsw .neon{display:block;width:80%;height:6px;border-radius:3px;background:linear-gradient(90deg,transparent,#ff2d95,#19e3ff);box-shadow:0 0 14px #19e3ff}
+.wsw{height:66px;width:100%;border:1px solid var(--line);display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;box-sizing:border-box;font-size:22px}
+.skin .why{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.theme{font-style:normal;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#ffd23f;border:1px solid rgba(255,210,63,.5);padding:1px 5px}
 .bundle{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border:1px solid rgba(255,210,63,.55);background:linear-gradient(90deg,rgba(255,210,63,.12),rgba(255,45,149,.08));padding:14px 16px}
 .bundle p{margin:0;font-size:14px;color:var(--dim);max-width:44ch}
 .bundle strong{display:block;color:#fff;letter-spacing:.14em;text-transform:uppercase;font-size:15px;margin-bottom:2px}
@@ -152,7 +161,7 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
       <label for="tagInput">Your tag</label>
       <input id="tagInput" maxlength="14" autocomplete="off" spellcheck="false" placeholder="RUNNER">
     </div>
-    <div class="row"><button class="go" id="startBtn" type="button">Run</button><button class="ghostbtn" id="skinsBtn" type="button">Skins</button></div>
+    <div class="row"><button class="go" id="startBtn" type="button">Run</button><button class="ghostbtn" id="skinsBtn" type="button">Locker</button></div>
     <dl class="keys">
       <dt>Space / W / ↑</dt><dd>Jump (hold to keep hopping)</dd>
       <dt>A D / ← →</dt><dd>Steer</dd>
@@ -171,15 +180,16 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
     <div class="score" id="deadScore">0<small>M</small></div>
     <div class="newbest" id="newBest" hidden>NEW BEST</div>
     <div class="sub" id="deadSub">Best 0</div>
-    <div class="row"><button class="go" id="retryBtn" type="button">Retry</button><button class="ghostbtn" id="skinsBtn2" type="button">Skins</button></div>
+    <div class="row"><button class="go" id="retryBtn" type="button">Retry</button><button class="ghostbtn" id="skinsBtn2" type="button">Locker</button></div>
   </div>
   <div id="deadBoardSlot"></div>
 </div>
 
 <div class="shop" id="shop" hidden>
   <div class="shop-in">
-    <div class="shop-h"><h2>Skins</h2><button class="iconbtn" id="shopClose" type="button">Close</button></div>
-    <div class="bundle" id="bundle"><div><strong>Full collection</strong><p>All four premium skins in one purchase.</p></div><button type="button" id="bundleBuy">Unlock all</button></div>
+    <div class="shop-h"><h2>Locker</h2><button class="iconbtn" id="shopClose" type="button">Close</button></div>
+    <div class="tabs" id="shopTabs" role="tablist"><button type="button" data-cat="box">Boxes</button><button type="button" data-cat="trail">Trails</button><button type="button" data-cat="world">Worlds</button></div>
+    <div class="bundle" id="bundle"><div><strong>Full collection</strong><p>Every premium box, trail and world in one purchase.</p></div><button type="button" id="bundleBuy">Unlock all</button></div>
     <div class="skins" id="skinGrid"></div>
     <div class="shop-foot"><span id="shopNote"></span><button class="linkbtn" id="restoreBtn" type="button">Restore purchases</button></div>
   </div>
@@ -223,13 +233,21 @@ if(isTouch)document.documentElement.classList.add('touch');
 /* ---------- constants ---------- */
 const TW=7, XLIM=3.05, PH=0.38, G=34, JV=11.6, SEED=90210;
 const BPM=128, SIX=60/BPM/4;
-const PALETTES=[
-  ['#ff2d95','#19e3ff'],
-  ['#ff7a18','#8a5cff'],
-  ['#ff2850','#ffd23f'],
-  ['#2f6bff','#ff4fd8'],
-  ['#3dffc5','#ff2d95'],
+// Worlds: each has its own palette cycle (changes every 300 m), sky and ambient effects.
+// sun: 0 striped sun, 1 moon, 2 ringed planet. mask: horizon silhouette from game/tex.
+const WORLDS=[
+  {id:'synth',name:'Synthwave',how:'free',icon:'🌆',sun:0,mtn:1,stars:0.985,fog:'#0b0418',top:'#080314',mid:'#29083a',
+    pal:[['#ff2d95','#19e3ff'],['#ff7a18','#8a5cff'],['#ff2850','#ffd23f'],['#2f6bff','#ff4fd8'],['#3dffc5','#ff2d95']]},
+  {id:'space',name:'Deep Space',how:'reach',need:1000,icon:'🪐',sun:2,mtn:0,stars:0.955,fog:'#03030d',top:'#010108',mid:'#0c0a2a',
+    pal:[['#8a5cff','#19e3ff'],['#3dffc5','#6b5cff'],['#ff4fd8','#2f6bff'],['#ffd23f','#8a5cff']]},
+  {id:'haunted',name:'Haunted',how:'buy',theme:'Halloween',icon:'🎃',sun:1,mtn:0,mask:'sky-haunted',maskW:1.25,stars:0.99,fog:'#0a0610',top:'#05030a',mid:'#1f0b26',amb:'bats',
+    pal:[['#ff7a18','#8a5cff'],['#6dff3a','#ff7a18'],['#b24dff','#6dff3a'],['#ff2850','#ff9a1a']]},
+  {id:'winter',name:'Winter',how:'buy',theme:'Holiday',icon:'❄️',sun:1,mtn:0,aurora:1,mask:'sky-winter',maskW:1.7,stars:0.982,fog:'#06101c',top:'#020814',mid:'#0d2a44',amb:'snow',
+    pal:[['#ff2850','#5ff4ff'],['#3dff7a','#ff2850'],['#5ff4ff','#ffd23f'],['#ffffff','#3dff7a']]},
 ];
+let worldId=store.get('ld_world','synth');
+const world=()=>WORLDS.find(w=>w.id===worldId)||WORLDS[0];
+let PALETTES=world().pal;
 const speedAt=d=>14+16*THREE.MathUtils.smoothstep(d,0,2200);
 
 /* ---------- renderer ---------- */
@@ -275,6 +293,9 @@ void main(){
 }`;
 const edgeFS=`
 uniform float uBeat; uniform float uAlpha; uniform float uFill; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar;
+#ifdef SKIN_MAP
+uniform sampler2D uMap; uniform float uMapK;
+#endif
 varying vec2 vUv; varying float vDepth; varying vec3 vCol; varying vec3 vN;
 void main(){
   vec2 fw=max(fwidth(vUv),vec2(1e-4));
@@ -285,12 +306,19 @@ void main(){
   float shade=0.45+0.55*max(dot(vN,normalize(vec3(0.3,0.9,0.35))),0.0);
   vec3 c=vCol;
   vec3 col=c*uFill*shade + c*glow*0.32*(1.0+uBeat*0.7) + c*line*(1.5+uBeat*0.9);
+  #ifdef SKIN_MAP
+  vec3 tx=texture2D(uMap,vUv).rgb;
+  col=mix(col, tx*(0.22+0.3*shade)*(1.0+uBeat*0.25) + c*glow*0.08 + c*line*(1.1+uBeat*0.8), uMapK);
+  #endif
   col=mix(col,uFog,smoothstep(uFogNear,uFogFar,vDepth));
   gl_FragColor=vec4(col,uAlpha);
 }`;
-function edgeMat(colorUniform,{fill=0.12,alpha=1,near=30,far=150,transparent=false,additive=false}={}){
+function edgeMat(colorUniform,{fill=0.12,alpha=1,near=30,far=150,transparent=false,additive=false,map=null}={}){
+  const uniforms={uColor:colorUniform,uBeat:U.uBeat,uFog:U.uFog,uAlpha:{value:alpha},uFill:{value:fill},uFogNear:{value:near},uFogFar:{value:far}};
+  if(map)Object.assign(uniforms,map);
   const m=new THREE.ShaderMaterial({
-    uniforms:{uColor:colorUniform,uBeat:U.uBeat,uFog:U.uFog,uAlpha:{value:alpha},uFill:{value:fill},uFogNear:{value:near},uFogFar:{value:far}},
+    defines:map?{SKIN_MAP:''}:{},
+    uniforms,
     vertexShader:edgeVS,fragmentShader:edgeFS,transparent,depthWrite:!transparent,
     blending:additive?THREE.AdditiveBlending:THREE.NormalBlending});
   m.extensions={derivatives:true};
@@ -344,36 +372,70 @@ const spikeMat=new THREE.ShaderMaterial({
 /* sky: full-screen quad reconstructing view rays */
 const skyMat=new THREE.ShaderMaterial({
   depthWrite:false,depthTest:false,
-  uniforms:{uA:U.uA,uB:U.uB,uTime:U.uTime,uBeat:U.uBeat,uInvProj:{value:new THREE.Matrix4()},uCamWorld:{value:new THREE.Matrix4()},uShift:{value:0}},
+  uniforms:{uA:U.uA,uB:U.uB,uTime:U.uTime,uBeat:U.uBeat,uInvProj:{value:new THREE.Matrix4()},uCamWorld:{value:new THREE.Matrix4()},uShift:{value:0},
+    uSun:{value:0},uMtn:{value:1},uStars:{value:0.985},uAurora:{value:0},uTop:{value:new THREE.Color()},uMid:{value:new THREE.Color()},
+    uMask:{value:null},uMaskK:{value:0},uMaskW:{value:1.2},uMaskH:{value:0.4}},
   vertexShader:`varying vec2 vNdc; void main(){ vNdc=position.xy; gl_Position=vec4(position.xy,0.9999,1.0); }`,
   fragmentShader:`
-  uniform vec3 uA,uB; uniform float uTime,uBeat,uShift; uniform mat4 uInvProj,uCamWorld; varying vec2 vNdc;
+  uniform vec3 uA,uB,uTop,uMid; uniform float uTime,uBeat,uShift,uSun,uMtn,uStars,uAurora,uMaskK,uMaskW,uMaskH; uniform sampler2D uMask; uniform mat4 uInvProj,uCamWorld; varying vec2 vNdc;
   float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
   void main(){
     vec4 v=uInvProj*vec4(vNdc,1.0,1.0); v/=v.w;
     vec3 ray=normalize((uCamWorld*vec4(v.xyz,0.0)).xyz);
     vec2 p=ray.xy/max(-ray.z,0.05); p.x+=uShift;
-    vec3 top=vec3(0.03,0.01,0.08), mid=vec3(0.16,0.03,0.22);
-    vec3 col=mix(mid,top,smoothstep(0.0,0.7,p.y));
+    vec3 col=mix(uMid,uTop,smoothstep(0.0,0.7,p.y));
     col+=uA*0.35*exp(-max(p.y,0.0)*9.0);
     // stars
     vec2 sp=p*70.0; vec2 id=floor(sp); float r=h21(id);
-    if(r>0.985 && p.y>0.08){ vec2 f=fract(sp)-0.5; float tw=0.6+0.4*sin(uTime*3.0+r*80.0); col+=vec3(1.0)*smoothstep(0.08,0.0,length(f))*tw*smoothstep(0.08,0.3,p.y); }
+    if(r>uStars && p.y>0.08){ vec2 f=fract(sp)-0.5; float tw=0.6+0.4*sin(uTime*3.0+r*80.0); col+=vec3(1.0)*smoothstep(0.08,0.0,length(f))*tw*smoothstep(0.08,0.3,p.y); }
+    // aurora
+    if(uAurora>0.0){ float wv=p.y-0.5-0.07*sin(p.x*2.6+uTime*0.25)-0.03*sin(p.x*7.0-uTime*0.4);
+      float a=exp(-wv*wv*90.0)*(0.55+0.45*sin(p.x*11.0+uTime*0.8))*smoothstep(0.1,0.35,p.y);
+      col+=mix(vec3(0.15,1.0,0.6),uB,0.35)*a*0.32*(1.0+uBeat*0.4); }
     // sun
     vec2 sc=vec2(0.0,0.17); float sr=0.33*(1.0+uBeat*0.015);
+    if(uSun>1.5){ sc=vec2(0.42,0.36); sr=0.16; } else if(uSun>0.5){ sc=vec2(-0.06,0.3); sr=0.12; }
     float sd=length(p-sc);
-    if(sd<sr){
+    if(uSun>1.5){
+      // ringed planet: back half of the ring, planet, then front half
+      vec2 q=p-sc; float ca=cos(0.35), sa=sin(0.35);
+      vec2 rq=vec2(ca*q.x+sa*q.y,(-sa*q.x+ca*q.y)*3.6);
+      float ringA=smoothstep(0.022,0.0,abs(length(rq)-0.26))+0.5*smoothstep(0.012,0.0,abs(length(rq)-0.3));
+      vec3 ringC=mix(uB,vec3(1.0),0.45)*1.1;
+      if(rq.y>0.0)col+=ringC*ringA;
+      if(sd<sr){ float k=(q.y+sr)/(2.0*sr); vec3 pl=mix(uA*1.1,uB*1.4,k)*(0.8+0.2*sin(q.y*70.0+q.x*10.0)); col=mix(col,pl,smoothstep(sr,sr-0.004,sd)); }
+      if(rq.y<=0.0)col+=ringC*ringA;
+      col+=uA*0.18*exp(-max(sd-sr,0.0)*9.0);
+    } else if(uSun>0.5){
+      // moon
+      if(sd<sr){ vec2 q=(p-sc)/sr; float cr=0.0;
+        cr+=smoothstep(0.22,0.18,length(q-vec2(-0.3,0.25)));
+        cr+=smoothstep(0.15,0.11,length(q-vec2(0.35,-0.15)));
+        cr+=smoothstep(0.12,0.08,length(q-vec2(-0.1,-0.45)));
+        vec3 mn=mix(vec3(1.0,0.96,0.85),vec3(0.75,0.72,0.8),cr*0.6)*(1.25-0.35*length(q));
+        col=mix(col,mn*0.62,smoothstep(sr,sr-0.004,sd)); }
+      col+=mix(vec3(1.0,0.95,0.8),uA,0.4)*0.16*exp(-max(sd-sr,0.0)*7.0);
+    } else if(sd<sr){
       float k=(p.y-sc.y+sr)/(2.0*sr);
       vec3 sun=mix(uA*1.6,uB*1.9+vec3(0.25),k);
       float band=1.0;
       if(p.y<sc.y+0.02){ float y=(sc.y+0.02-p.y); float freq=48.0; float w=0.08+y*2.2; band=step(w,fract(y*freq-uTime*0.6)); }
       col=mix(col,sun,band*smoothstep(sr,sr-0.006,sd));
     }
-    col+=uA*0.25*exp(-max(sd-sr,0.0)*7.0);
+    if(uSun<0.5)col+=uA*0.25*exp(-max(sd-sr,0.0)*7.0);
+    // silhouette skyline (worlds with a mask)
+    if(uMaskK>0.0 && p.y>-0.01 && p.y<uMaskH){
+      vec2 mu=vec2(p.x/uMaskW+0.5, max(p.y,0.0)/uMaskH);
+      float m=texture2D(uMask,mu).r;
+      float mUp=texture2D(uMask,mu+vec2(0.0,0.02)).r;
+      vec3 sil=vec3(0.02,0.008,0.035);
+      col=mix(col,sil,m);
+      col+=uB*clamp(m-mUp,0.0,1.0)*1.6*(1.0+uBeat*0.5);
+    }
     // mountains
     float m=0.045+0.06*abs(sin(p.x*2.3+1.2))+0.035*abs(sin(p.x*6.7))+0.02*sin(p.x*17.0);
     m*=smoothstep(0.05,0.6,abs(p.x));
-    if(p.y<m && p.y>-0.02){ col=vec3(0.03,0.008,0.06); col+=uB*smoothstep(0.012,0.0,m-p.y)*1.4; col+=uB*0.1*step(0.0,sin(p.x*120.0))*smoothstep(0.0,m,p.y)*0.5; }
+    if(uMtn>0.5 && p.y<m && p.y>-0.02){ col=vec3(0.03,0.008,0.06); col+=uB*smoothstep(0.012,0.0,m-p.y)*1.4; col+=uB*0.1*step(0.0,sin(p.x*120.0))*smoothstep(0.0,m,p.y)*0.5; }
     if(p.y<=-0.0){ col=mix(vec3(0.05,0.01,0.09),vec3(0.015,0.005,0.03),smoothstep(0.0,-0.3,p.y)); col+=uA*0.4*exp(p.y*40.0); }
     gl_FragColor=vec4(col,1.0);
   }`
@@ -385,7 +447,17 @@ sky.frustumCulled=false; sky.renderOrder=-10; scene.add(sky);
 const blockMat=edgeMat(U.uB,{fill:0.14});
 const wallMat=edgeMat(U.uA,{fill:0.10});
 const whiteU={value:new THREE.Color(1.1,1.1,1.2)};
-const playerMat=edgeMat(whiteU,{fill:0.22,near:200,far:400});
+/* textures (embedded by the build as data URLs; plain files when run from game/) */
+const texLoader=new THREE.TextureLoader();
+const TEXS={};
+function tex(name,ext){
+  if(TEXS[name])return TEXS[name];
+  const emb=window.__LD_TEX&&window.__LD_TEX[name];
+  const t=texLoader.load(emb||('tex/'+name+'.'+ext));
+  TEXS[name]=t; return t;
+}
+const skinMapU={uMap:{value:null},uMapK:{value:0}};
+const playerMat=edgeMat(whiteU,{fill:0.22,near:200,far:400,map:skinMapU});
 const cityMat=edgeMat({value:new THREE.Color(1,1,1)},{fill:0.06,near:40,far:200});
 const debrisMat=edgeMat({value:new THREE.Color(1,1,1)},{fill:0.4,near:200,far:400});
 
@@ -440,7 +512,7 @@ function resetStreak(s,init){
 
 /* ---------- particles ---------- */
 const PMAX=900;
-const pPos=new Float32Array(PMAX*3), pCol=new Float32Array(PMAX*3), pSize=new Float32Array(PMAX), pAlpha=new Float32Array(PMAX);
+const pPos=new Float32Array(PMAX*3), pCol=new Float32Array(PMAX*3), pSize=new Float32Array(PMAX), pAlpha=new Float32Array(PMAX), pShape=new Float32Array(PMAX);
 const P={vx:new Float32Array(PMAX),vy:new Float32Array(PMAX),vz:new Float32Array(PMAX),life:new Float32Array(PMAX),max:new Float32Array(PMAX),g:new Float32Array(PMAX),s0:new Float32Array(PMAX),drag:new Float32Array(PMAX)};
 let pHead=0;
 const pGeo=new THREE.BufferGeometry();
@@ -448,15 +520,30 @@ pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
 pGeo.setAttribute('aColor',new THREE.BufferAttribute(pCol,3));
 pGeo.setAttribute('aSize',new THREE.BufferAttribute(pSize,1));
 pGeo.setAttribute('aAlpha',new THREE.BufferAttribute(pAlpha,1));
+pGeo.setAttribute('aShape',new THREE.BufferAttribute(pShape,1));
+// Emoji sprite atlas for themed trails and ambient effects (4 x 2 cells).
+const SPRITES=['⭐','❄️','🦇','🎃','🎁','💖','💀','✨'];
+const atlasCv=document.createElement('canvas'); atlasCv.width=512; atlasCv.height=256;
+(function(){const c=atlasCv.getContext('2d');c.textAlign='center';c.textBaseline='middle';
+  c.font='96px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  SPRITES.forEach((e,i)=>{c.fillText(e,(i%4)*128+64,Math.floor(i/4)*128+70);});})();
+const atlasTex=new THREE.CanvasTexture(atlasCv); atlasTex.flipY=false;
+const spriteId=e=>SPRITES.indexOf(e)+1;
 const pMat=new THREE.ShaderMaterial({
-  uniforms:{uPR:{value:PR}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-  vertexShader:`attribute vec3 aColor; attribute float aSize; attribute float aAlpha; uniform float uPR; varying vec3 vC; varying float vA;
-  void main(){ vC=aColor; vA=aAlpha; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=aSize*uPR*(260.0/max(-mv.z,0.5)); gl_Position=projectionMatrix*mv; }`,
-  fragmentShader:`varying vec3 vC; varying float vA; void main(){ float d=length(gl_PointCoord-0.5); float a=smoothstep(0.5,0.0,d); a*=a; gl_FragColor=vec4(vC*a*vA*1.8,1.0); }`
+  uniforms:{uPR:{value:PR},uAtlas:{value:atlasTex}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:`attribute vec3 aColor; attribute float aSize; attribute float aAlpha; attribute float aShape; uniform float uPR; varying vec3 vC; varying float vA; varying float vS;
+  void main(){ vC=aColor; vA=aAlpha; vS=aShape; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=aSize*uPR*(260.0/max(-mv.z,0.5)); gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`uniform sampler2D uAtlas; varying vec3 vC; varying float vA; varying float vS;
+  void main(){
+    if(vS<0.5){ float d=length(gl_PointCoord-0.5); float a=smoothstep(0.5,0.0,d); a*=a; gl_FragColor=vec4(vC*a*vA*1.8,1.0); return; }
+    float i=vS-1.0; vec2 cell=vec2(mod(i,4.0),floor(i/4.0));
+    vec4 t=texture2D(uAtlas,(cell+gl_PointCoord)/vec2(4.0,2.0));
+    gl_FragColor=vec4(t.rgb*vC*t.a*vA*1.15,1.0);
+  }`
 });
 const points=new THREE.Points(pGeo,pMat); points.frustumCulled=false; scene.add(points);
-function emit(x,y,z,vx,vy,vz,life,size,color,g=0,drag=0){
-  const i=pHead; pHead=(pHead+1)%PMAX;
+function emit(x,y,z,vx,vy,vz,life,size,color,g=0,drag=0,shape=0){
+  const i=pHead; pHead=(pHead+1)%PMAX; pShape[i]=shape;
   pPos[i*3]=x;pPos[i*3+1]=y;pPos[i*3+2]=z;
   P.vx[i]=vx;P.vy[i]=vy;P.vz[i]=vz;P.life[i]=life;P.max[i]=life;P.g[i]=g;P.s0[i]=size;P.drag[i]=drag;
   pCol[i*3]=color.r;pCol[i*3+1]=color.g;pCol[i*3+2]=color.b;
@@ -471,7 +558,7 @@ function updateParticles(dt){
     if(pPos[i*3+1]<0.02&&P.g[i]>0){pPos[i*3+1]=0.02;P.vy[i]*=-0.4;}
     pAlpha[i]=k; pSize[i]=P.s0[i]*(0.3+0.7*k);
   }
-  pGeo.attributes.position.needsUpdate=true;pGeo.attributes.aColor.needsUpdate=true;pGeo.attributes.aSize.needsUpdate=true;pGeo.attributes.aAlpha.needsUpdate=true;
+  pGeo.attributes.position.needsUpdate=true;pGeo.attributes.aColor.needsUpdate=true;pGeo.attributes.aSize.needsUpdate=true;pGeo.attributes.aAlpha.needsUpdate=true;pGeo.attributes.aShape.needsUpdate=true;
 }
 
 /* ---------- debris ---------- */
@@ -620,7 +707,7 @@ function floorUnder(d){
 /* ---------- game state ---------- */
 const S={state:'menu',px:0,py:0,pd:0,vx:0,vy:0,grounded:true,coyote:0,jumpBuf:0,rot:0,rotTarget:0,
   sq:1,lean:0,alive:true,deadT:0,timeScale:1,trauma:0,flash:0,aberr:0,fovKick:0,attempt:store.get('ld_att',0),
-  best:store.get('ld_best',0),lastMile:0,score:0,airT:0,trailT:0,camX:0,camY:3,zone:0,milestonePulse:0};
+  best:store.get('ld_best',0),emojiT:0,ambT:0,lastMile:0,score:0,airT:0,trailT:0,camX:0,camY:3,zone:0,milestonePulse:0};
 const input={left:false,right:false,jumpHeld:false,axis:0,stick:false};
 const el=id=>document.getElementById(id);
 el('bestHud').textContent=S.best; el('attHud').textContent=Math.max(1,S.attempt);
@@ -639,6 +726,32 @@ function startRun(){
   document.documentElement.classList.add('running');
 }
 function setPalette(i){ S.zone=i; const p=PALETTES[i%PALETTES.length]; tgtA.set(p[0]); tgtB.set(p[1]); }
+const snowC=new THREE.Color(0.75,0.85,1.0);
+function ambient(dt){
+  const w=world(); if(!w.amb)return;
+  const cz=camera.position.z;
+  if(w.amb==='snow'){
+    S.ambT+=dt*(lowGfx?18:34);
+    while(S.ambT>1){S.ambT-=1;
+      emit(camera.position.x+(Math.random()-.5)*26,5+Math.random()*5,cz-4-Math.random()*55,(Math.random()-.5)*0.8,-1.2-Math.random()*1.1,0,6,0.12+Math.random()*0.12,snowC,0,0);}
+  } else if(w.amb==='bats'){
+    S.ambT+=dt;
+    if(S.ambT>1.6){S.ambT=0; const dir=Math.random()<0.5?1:-1, n=1+Math.floor(Math.random()*3);
+      for(let i=0;i<n;i++)emit(camera.position.x-dir*(22+Math.random()*6),8+Math.random()*7,cz-35-Math.random()*30,dir*(7+Math.random()*4),(Math.random()-.5)*1.2,0,7,4.5+Math.random()*2.5,white,0,0,spriteId('🦇'));}
+  }
+}
+function applyWorld(){
+  const w=world(); PALETTES=w.pal;
+  const u=skyMat.uniforms;
+  u.uSun.value=w.sun; u.uMtn.value=w.mtn; u.uStars.value=w.stars; u.uAurora.value=w.aurora||0;
+  u.uTop.value.set(w.top); u.uMid.value.set(w.mid);
+  if(w.mask){const t=tex(w.mask,'png'); t.wrapS=THREE.MirroredRepeatWrapping; t.wrapT=THREE.ClampToEdgeWrapping;
+    u.uMask.value=t; u.uMaskK.value=1; u.uMaskW.value=w.maskW||1.2;
+    const sz={'sky-haunted':346/1024,'sky-winter':142/1024}[w.mask]||0.3; u.uMaskH.value=(w.maskW||1.2)*sz;}
+  else {u.uMaskK.value=0; u.uMask.value=null;}
+  U.uFog.value.set(w.fog); renderer.setClearColor(w.fog,1);
+  setPalette(S.state==='run'?S.zone:0);
+}
 
 function die(){
   if(!S.alive)return;
@@ -649,6 +762,9 @@ function die(){
   for(let i=0;i<160;i++){const a=Math.random()*Math.PI*2,u=Math.random()*2-1,s=4+Math.random()*14,r=Math.sqrt(1-u*u);
     const c=i%3===0?new THREE.Color(1,1,1):(i%3===1?U.uA.value:trailColor(1));
     emit(x,y,z,Math.cos(a)*r*s,Math.abs(u)*s*0.8+2,Math.sin(a)*r*s-speedAt(S.pd)*0.25,0.6+Math.random()*0.9,0.25+Math.random()*0.45,c,14,1.5);}
+  const trd=trailItem();
+  if(trd.sprite)for(let i=0;i<26;i++){const a=Math.random()*Math.PI*2,s=3+Math.random()*8;
+    emit(x,y,z,Math.cos(a)*s,3+Math.random()*7,Math.sin(a)*s-speedAt(S.pd)*0.2,1+Math.random()*0.8,0.8+Math.random()*0.4,white,12,1.2,spriteId(trd.sprite));}
   for(let i=0;i<DEB;i++){const b=debData[i];b.p.set(x+(Math.random()-.5)*0.6,y+(Math.random()-.5)*0.6,z+(Math.random()-.5)*0.6);
     b.v.set((Math.random()-.5)*12,4+Math.random()*9,-(Math.random()*8)-speedAt(S.pd)*0.35);b.w.set(Math.random()*20,Math.random()*20,Math.random()*20);b.r.set(0,0,0);b.s=0.6+Math.random()*1.1;
     debris.setColorAt(i,tmpC.copy(i%2?U.uA.value:U.uB.value).multiplyScalar(1.4));}
@@ -659,7 +775,7 @@ function die(){
   const sc=Math.floor(S.pd); S.score=sc;
   const prevBest=S.best;
   const newBest=sc>S.best; if(newBest){S.best=sc;store.set('ld_best',sc);el('bestHud').textContent=sc;}
-  setTimeout(()=>{showDead(sc,newBest);for(const k of SKINS)if(k.how==='reach'&&prevBest<k.need&&sc>=k.need){toast('New skin unlocked: '+k.name);haptic('success');}},650);
+  setTimeout(()=>{showDead(sc,newBest);announceUnlocks(prevBest,sc);},650);
   submitScore(sc);
 }
 function showDead(sc,newBest){
@@ -775,6 +891,10 @@ function frame(now){
     S.trailT+=rdt;
     if(S.state==='run'&&S.trailT>0.022){S.trailT=0;hist.unshift({x:S.px,y:S.py+0.4,z,r:S.rot,l:S.lean});if(hist.length>40)hist.length=40;
       emit(S.px+(Math.random()-.5)*0.5,S.py+0.1+Math.random()*0.6,z+0.45,(Math.random()-.5)*1.2,Math.random()*0.8,1.5,0.5,0.16+Math.random()*0.1,trailColor(Math.random()<0.5?0:1),0,1);}
+    const tr=trailItem();
+    if(tr.sprite&&(S.state==='run'||S.state==='menu')){S.emojiT+=rdt;
+      if(S.emojiT>(S.state==='run'?0.055:0.14)){S.emojiT=0;
+        emit(S.px+(Math.random()-.5)*0.6,S.py+0.25+Math.random()*0.6,z+0.6,(Math.random()-.5)*1.6,0.5+Math.random()*1.3,S.state==='run'?1.4:-1.5,0.85,0.7+Math.random()*0.3,white,tr.g||0,0.8,spriteId(tr.sprite));}}
     ghosts.forEach((g,i)=>{const hst=hist[(i+1)*2];if(hst&&S.state==='run'){g.visible=true;g.position.set(hst.x,hst.y,hst.z);g.rotation.set(hst.r,0,hst.l);g.scale.setScalar(1-i*0.08);}else g.visible=false;});
   }
   // debris
@@ -783,6 +903,7 @@ function frame(now){
       b.r.x+=b.w.x*dt;b.r.y+=b.w.y*dt;b.r.z+=b.w.z*dt;dummy.position.copy(b.p);dummy.rotation.copy(b.r);dummy.scale.setScalar(b.s);dummy.updateMatrix();debris.setMatrixAt(i,dummy.matrix);}
     debris.instanceMatrix.needsUpdate=true;
   }
+  ambient(rdt);
   updateParticles(dt);
 
   // camera
@@ -1072,28 +1193,60 @@ function paintGfx(){el('gfxBtn').textContent='Graphics: '+(lowGfx?'low':'high');
 el('gfxBtn').addEventListener('click',e=>{e.stopPropagation();perf.done=true;setQuality(lowGfx?'high':'low');haptic('select');});
 paintGfx();
 
-/* ---------- skins ---------- */
+/* ---------- unlockables: boxes, trails, worlds ---------- */
+// how: free | reach (best distance in m) | tries (number of runs) | buy (App Store product)
 const PID='com.gbymedia.linedrive.';
 const SKINS=[
   {id:'core',name:'Core',how:'free',edge:'#ffffff'},
   {id:'volt',name:'Volt',how:'reach',need:300,edge:'#d6ff3a',core:'#7dff2a',trail:['#d6ff3a','#5dff9a']},
   {id:'ember',name:'Ember',how:'reach',need:800,edge:'#ff8a3d',core:'#ff3d00',trail:['#ff8a3d','#ffd23f']},
+  {id:'frost',name:'Frost',how:'reach',need:1200,tex:'box-frost',edge:'#a8f5ff',core:'#ffffff',trail:['#a8f5ff','#ffffff']},
+  {id:'toxic',name:'Toxic',how:'tries',need:100,edge:'#6dff3a',core:'#d6ff3a',trail:['#6dff3a','#b24dff']},
+  {id:'jack',name:'Jack',how:'buy',theme:'Halloween',product:PID+'skin.jack',tex:'box-jack',edge:'#ff8a1a',core:'#ffd23f',trail:['#ff7a18','#ffd23f']},
+  {id:'skull',name:'Skull',how:'buy',theme:'Halloween',product:PID+'skin.skull',tex:'box-skull',edge:'#6dff3a',core:'#e8ffe0',trail:['#6dff3a','#b24dff']},
+  {id:'gift',name:'Gift',how:'buy',theme:'Holiday',product:PID+'skin.gift',tex:'box-gift',edge:'#ff2850',core:'#ffd23f',trail:['#ff2850','#3dff7a']},
   {id:'prism',name:'Prism',how:'buy',product:PID+'skin.prism',rainbow:true,edge:'#ff5ad1'},
   {id:'obsidian',name:'Obsidian',how:'buy',product:PID+'skin.obsidian',edge:'#ff1e3c',core:'#ff1e3c',trail:['#ff1e3c','#ff6a00']},
   {id:'gold',name:'Gold',how:'buy',product:PID+'skin.gold',edge:'#ffd23f',core:'#fff3b8',trail:['#ffd23f','#ff9a1a']},
   {id:'phantom',name:'Phantom',how:'buy',product:PID+'skin.phantom',edge:'#a8f5ff',core:'#ffffff',trail:['#a8f5ff','#6b5cff']},
 ];
+const TRAILS=[
+  {id:'neon',name:'Neon',how:'free'},
+  {id:'stardust',name:'Stardust',how:'reach',need:500,sprite:'✨'},
+  {id:'snow',name:'Snowfall',how:'tries',need:50,sprite:'❄️'},
+  {id:'bats',name:'Bats',how:'buy',theme:'Halloween',product:PID+'trail.bats',sprite:'🦇'},
+  {id:'skulls',name:'Skulls',how:'buy',theme:'Halloween',product:PID+'trail.skulls',sprite:'💀'},
+  {id:'gifts',name:'Gifts',how:'buy',theme:'Holiday',product:PID+'trail.gifts',sprite:'🎁'},
+  {id:'hearts',name:'Hearts',how:'buy',product:PID+'trail.hearts',sprite:'💖'},
+];
+WORLDS.find(w=>w.id==='haunted').product=PID+'world.haunted';
+WORLDS.find(w=>w.id==='winter').product=PID+'world.winter';
+const CATS={
+  box:{label:'Boxes',items:SKINS,key:'ld_skin',def:'core'},
+  trail:{label:'Trails',items:TRAILS,key:'ld_trail',def:'neon'},
+  world:{label:'Worlds',items:WORLDS,key:'ld_world',def:'synth'},
+};
+const ALL=[...SKINS,...TRAILS,...WORLDS];
 const BUNDLE=PID+'skins.all';
-const PRODUCTS=[...SKINS.filter(k=>k.product).map(k=>k.product),BUNDLE];
+const PRODUCTS=[...ALL.filter(k=>k.product).map(k=>k.product),BUNDLE];
 const white=new THREE.Color(1,1,1);
 let owned=new Set(store.get('ld_owned',[]));
-let prices={}, storeReady=false, buying=null;
-let equipped=store.get('ld_skin','core');
+let prices={}, storeReady=false, buying=null, shopTab='box';
+const eq={};
+function unlocked(k){
+  if(k.how==='free')return true;
+  if(k.how==='reach')return S.best>=k.need;
+  if(k.how==='tries')return S.attempt>=k.need;
+  return owned.has(k.product)||owned.has(BUNDLE);
+}
+function current(cat){const c=CATS[cat];return c.items.find(k=>k.id===eq[cat])||c.items[0];}
+function validate(){for(const cat in CATS){const c=CATS[cat];if(!eq[cat])eq[cat]=store.get(c.key,c.def);if(!unlocked(current(cat)))eq[cat]=c.def;}
+  if(worldId!==eq.world){worldId=eq.world;applyWorld();}}
+const skin=()=>current('box'), trailItem=()=>current('trail');
 const skinCol={edge:new THREE.Color(1,1,1),core:new THREE.Color(1,1,1),t0:new THREE.Color(PALETTES[0][0]),t1:new THREE.Color(PALETTES[0][1])};
-function skin(){return SKINS.find(k=>k.id===equipped)||SKINS[0];}
-function unlocked(k){if(k.how==='free')return true;if(k.how==='reach')return S.best>=k.need;return owned.has(k.product)||owned.has(BUNDLE);}
-if(!unlocked(skin()))equipped='core';
+validate(); applyWorld();
 function trailColor(i){return i?skinCol.t1:skinCol.t0;}
+let lastTex=null;
 function updateSkinColors(t){
   const k=skin();
   if(k.rainbow){const h=(t*0.22)%1;skinCol.edge.setHSL(h,1,0.62);skinCol.t0.setHSL((h+0.33)%1,1,0.6);skinCol.t1.setHSL((h+0.66)%1,1,0.6);skinCol.core.copy(skinCol.edge).lerp(white,0.5);}
@@ -1103,47 +1256,77 @@ function updateSkinColors(t){
   whiteU.value.copy(skinCol.edge).multiplyScalar(1.1);
   coreMat.color.copy(skinCol.core);
   ghostU.value.copy(skinCol.t1);
+  if(k.tex!==lastTex){lastTex=k.tex;skinMapU.uMap.value=k.tex?tex(k.tex,'jpg'):null;skinMapU.uMapK.value=k.tex?1:0;pCore.visible=!k.tex;}
 }
-function whyText(k){return k.how==='buy'?'Owned':(k.how==='reach'?'Unlocked':'Default');}
+function texUrl(name,ext){return (window.__LD_TEX&&window.__LD_TEX[name])||('tex/'+name+'.'+ext);}
+function swatchFor(cat,k){
+  const sw=document.createElement('div');
+  if(cat==='box'){
+    sw.className='swatch'+(k.rainbow?' rainbow':''); sw.style.color=k.edge;
+    if(k.tex){sw.classList.add('tx');sw.style.backgroundImage='url("'+texUrl(k.tex,'jpg')+'")';}
+    else sw.appendChild(document.createElement('i'));
+  } else if(cat==='trail'){
+    sw.className='tsw'; const e=document.createElement('span');
+    if(k.sprite){e.textContent=k.sprite+k.sprite+k.sprite;} else {e.className='neon';}
+    sw.appendChild(e);
+  } else {
+    sw.className='wsw';
+    sw.style.background='linear-gradient(180deg,'+k.top+' 0%,'+k.mid+' 62%,'+k.pal[0][0]+' 63%,'+k.fog+' 100%)';
+    const e=document.createElement('span'); e.textContent=k.icon; sw.appendChild(e);
+  }
+  return sw;
+}
+function lockText(k){return k.how==='reach'?'Reach '+k.need+' m':(k.how==='tries'?'Play '+k.need+' runs':'Premium');}
 function renderShop(){
+  document.querySelectorAll('#shopTabs button').forEach(b=>b.classList.toggle('on',b.dataset.cat===shopTab));
   const g=el('skinGrid'); g.textContent='';
-  for(const k of SKINS){
-    const card=document.createElement('div'); card.className='skin'+(k.id===equipped?' eq':'');
-    const sw=document.createElement('div'); sw.className='swatch'+(k.rainbow?' rainbow':''); sw.style.color=k.edge; sw.appendChild(document.createElement('i'));
+  const cat=shopTab;
+  for(const k of CATS[cat].items){
+    const card=document.createElement('div'); card.className='skin'+(k.id===eq[cat]?' eq':'');
     const nm=document.createElement('b'); nm.textContent=k.name;
     const why=document.createElement('div'); why.className='why';
+    if(k.theme){const tg=document.createElement('em');tg.className='theme';tg.textContent=k.theme;why.appendChild(tg);}
+    const whyT=document.createElement('span'); why.appendChild(whyT);
     const btn=document.createElement('button'); btn.type='button';
-    if(k.id===equipped){why.textContent=whyText(k);btn.textContent='Equipped';btn.disabled=true;}
-    else if(unlocked(k)){why.textContent=whyText(k);btn.textContent='Equip';btn.onclick=()=>equip(k.id);}
-    else if(k.how==='reach'){why.textContent='Reach '+k.need+' m';btn.textContent=Math.max(0,k.need-S.best)+' m to go';btn.disabled=true;}
-    else{why.textContent='Premium';btn.className='buy';
+    if(k.id===eq[cat]){whyT.textContent=k.how==='buy'?'Owned':(k.how==='free'?'Default':'Unlocked');btn.textContent='Equipped';btn.disabled=true;}
+    else if(unlocked(k)){whyT.textContent=k.how==='buy'?'Owned':(k.how==='free'?'Default':'Unlocked');btn.textContent='Equip';btn.onclick=()=>equip(cat,k.id);}
+    else if(k.how==='reach'){whyT.textContent=lockText(k);btn.textContent=Math.max(0,k.need-S.best)+' m to go';btn.disabled=true;}
+    else if(k.how==='tries'){whyT.textContent=lockText(k);btn.textContent=Math.max(0,k.need-S.attempt)+' to go';btn.disabled=true;}
+    else{whyT.textContent='Premium';btn.className='buy';
       if(!NATIVE){btn.textContent='iOS app';btn.disabled=true;}
       else if(!storeReady){btn.textContent='Loading…';btn.disabled=true;}
       else if(!prices[k.product]){btn.textContent='Unavailable';btn.disabled=true;}
       else{btn.textContent=buying===k.product?'Buying…':prices[k.product];btn.disabled=!!buying;btn.onclick=()=>buy(k.product);}}
-    card.append(sw,nm,why,btn); g.appendChild(card);
+    card.append(swatchFor(cat,k),nm,why,btn); g.appendChild(card);
   }
-  el('bundle').hidden=SKINS.filter(k=>k.how==='buy').every(unlocked);
+  el('bundle').hidden=ALL.filter(k=>k.how==='buy').every(unlocked);
   const bb=el('bundleBuy');
   if(!NATIVE){bb.textContent='iOS app only';bb.disabled=true;}
   else if(prices[BUNDLE]){bb.textContent=buying===BUNDLE?'Buying…':'Unlock all · '+prices[BUNDLE];bb.disabled=!!buying;}
   else{bb.textContent=storeReady?'Unavailable':'Loading…';bb.disabled=true;}
-  el('shopNote').textContent=NATIVE?'One-time purchases. They restore on any device signed in to your Apple ID.':'Premium skins are sold in the Linedrive iOS app.';
+  el('shopNote').textContent=NATIVE?'One-time purchases. They restore on any device signed in to your Apple ID.':'Premium items are sold in the Linedrive iOS app.';
   el('restoreBtn').hidden=!NATIVE;
 }
-function equip(id){equipped=id;store.set('ld_skin',id);haptic('select');renderShop();}
+function equip(cat,id){eq[cat]=id;store.set(CATS[cat].key,id);if(cat==='world'){worldId=id;applyWorld();}haptic('select');renderShop();}
 function buy(pid){if(buying)return;buying=pid;haptic('light');send({t:'buy',id:pid});renderShop();}
 function openShop(){if(S.state==='run')return;renderShop();el('shop').hidden=false;haptic('select');}
 function closeShop(){el('shop').hidden=true;}
+function catOf(k){return SKINS.includes(k)?'box':(TRAILS.includes(k)?'trail':'world');}
+// Called after each run: announce anything that just unlocked by distance or run count.
+function announceUnlocks(prevBest,sc){
+  const fresh=ALL.filter(k=>(k.how==='reach'&&prevBest<k.need&&sc>=k.need)||(k.how==='tries'&&S.attempt===k.need));
+  fresh.forEach((k,i)=>setTimeout(()=>{toast('Unlocked: '+k.name+' ('+CATS[catOf(k)].label.slice(0,-1).toLowerCase()+')');haptic('success');},i*1600));
+}
+document.querySelectorAll('#shopTabs button').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();shopTab=b.dataset.cat;haptic('select');renderShop();}));
 el('bundleBuy').addEventListener('click',()=>buy(BUNDLE));
 el('restoreBtn').addEventListener('click',()=>{send({t:'restore'});toast('Restoring purchases…');});
 el('shopClose').addEventListener('click',e=>{e.stopPropagation();closeShop();});
 handlers.products=m=>{storeReady=true;prices={};(m.items||[]).forEach(p=>{prices[p.id]=p.price;});if(!el('shop').hidden)renderShop();};
-handlers.owned=m=>{owned=new Set(m.ids||[]);store.set('ld_owned',[...owned]);if(!unlocked(skin()))equipped='core';if(!el('shop').hidden)renderShop();};
+handlers.owned=m=>{owned=new Set(m.ids||[]);store.set('ld_owned',[...owned]);validate();if(!el('shop').hidden)renderShop();};
 handlers.buyResult=m=>{
   const pid=buying; buying=null;
   if(m.owned){owned=new Set(m.owned);store.set('ld_owned',[...owned]);}
-  if(m.ok){haptic('success');const k=SKINS.find(x=>x.product===pid);equip(k?k.id:'prism');toast('Unlocked');S.flash=0.4;}
+  if(m.ok){haptic('success');const k=ALL.find(x=>x.product===pid);if(k)equip(catOf(k),k.id);toast('Unlocked');S.flash=0.4;}
   else if(!m.cancelled)toast(m.error||'Purchase failed. Try again.');
   renderShop();
 };

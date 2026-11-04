@@ -33,7 +33,14 @@ const music = {};
 for (const f of readdirSync(musicDir).filter((f) => f.endsWith('.mp3')).sort()) {
   music[f] = readFileSync(path.join(musicDir, f)).toString('base64');
 }
-const musicScript = `<script>window.__LD_MUSIC=${JSON.stringify(music)};</script>`;
+// Embed the box textures and sky silhouettes in game/tex as data URLs.
+const texDir = path.join(root, 'game/tex');
+const texs = {};
+for (const f of readdirSync(texDir).filter((f) => /\.(png|jpg)$/.test(f)).sort()) {
+  const mime = f.endsWith('.png') ? 'image/png' : 'image/jpeg';
+  texs[f.replace(/\.(png|jpg)$/, '')] = `data:${mime};base64,` + readFileSync(path.join(texDir, f)).toString('base64');
+}
+const musicScript = `<script>window.__LD_MUSIC=${JSON.stringify(music)};window.__LD_TEX=${JSON.stringify(texs)};</script>`;
 
 if (/<!--INLINE:|\/\*FONTS\*\//.test(html)) throw new Error('Unresolved placeholder in game HTML');
 const [before, after, extra] = html.split('<!--MUSIC-->');

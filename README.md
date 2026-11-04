@@ -78,4 +78,8 @@ The first build asks to link the Expo project and to sign in to your Apple accou
 
 - The course is seeded (`SEED` in `game/index.html`), so every run is the same track. Change the seed for a new track; old leaderboard scores won't be comparable.
 - Graphics start on high and drop to low automatically if the first run averages under ~44 fps. Players can switch with the Graphics button.
-- Skins: Core (free), Volt (reach 300 m), Ember (reach 800 m), and four paid skins. Product IDs are defined in both `game/index.html` and `src/config.ts`; keep them in sync.
+- Locker (unlockables), in three tabs. Product IDs are defined in both `game/index.html` and `src/config.ts`; keep them in sync. The `skins.all` bundle unlocks every premium item.
+  - Boxes: Core (free), Volt (300 m), Ember (800 m), Frost (1200 m), Toxic (100 runs); paid: Jack, Skull, Gift, Prism, Obsidian, Gold, Phantom.
+  - Trails: Neon (free), Stardust (500 m), Snowfall (50 runs); paid: Bats, Skulls, Gifts, Hearts. Trails are emoji sprites drawn into a canvas atlas.
+  - Worlds: Synthwave (free), Deep Space (1000 m); paid: Haunted, Winter. Each world sets its own palette cycle, sky (sun, moon or ringed planet), horizon silhouette and ambient effects (bats, snow).
+  - Box textures and skyline silhouettes live in `game/tex/` (generated with Replicate's flux-schnell) and are embedded by the build.
