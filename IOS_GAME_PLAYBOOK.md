@@ -37,8 +37,8 @@ Before load, the app injects `window.__LD_SAVE` (saved data) and `window.__LD_CO
 
 ## Monetization pattern
 
-- Non-consumable cosmetic skins: some free, some unlocked by distance (gives free players goals), some paid at $0.99, plus a $2.99 "unlock all" bundle.
-- Product IDs: `com.gbymedia.<game>.skin.<name>` and `com.gbymedia.<game>.skins.all`.
+- Non-consumable cosmetics in a tabbed Locker (boxes, trails, worlds): some free, some earned by distance or number of runs (gives free players goals), some paid at $0.99, plus an "unlock all" bundle ($4.99 for 13 items on Linedrive). Seasonal themes (Halloween, holiday) are cheap to add.
+- Product IDs: `com.gbymedia.<game>.skin.<name>`, `.trail.<name>`, `.world.<name>`, and `com.gbymedia.<game>.skins.all` for the bundle.
 - The app reads `customerInfo.allPurchasedProductIdentifiers` directly, so no RevenueCat entitlements or offerings are needed.
 - A Restore purchases button is required by App Review.
 
@@ -64,6 +64,9 @@ Before load, the app injects `window.__LD_SAVE` (saved data) and `window.__LD_CO
 - **Hidden elements:** a standalone HTML page needs its own `[hidden]{display:none!important}`. Without it, hidden overlays block taps (the claude.ai artifact wrapper had been supplying it).
 - **Recorded music:** embed MP3s as base64 and play them with WebAudio (`decodeAudioData` + looping `AudioBufferSource`) so the low-pass death sweep and beat sync still work. Keep the base64 in its own ASCII-only string literal and join at runtime with `[a, b, c].join('')`: Hermes stores any string containing a non-ASCII character at 2 bytes per char, and `a + b` gets constant-folded into one string (15 MB vs 10 MB bundle).
 - **Overlay stacking:** keep the top bar's z-index above full-screen menus, or its buttons (sound, graphics) become untappable on the menu.
+- **Generated art:** Replicate's `black-forest-labs/flux-schnell` (through the Replicate connector) works well for box face textures (prompt "filling the entire frame edge to edge") and for skyline silhouettes (prompt "solid black silhouette on pure white background", then invert and use as a mask). Keep textures at 256 px JPEG and masks as grayscale PNG; three.js textures are flipped, so v=0 is the image bottom. Tone textured surfaces down (about 0.3x) or bloom washes them out.
+- **Emoji sprites:** draw emoji into a canvas atlas and sample it from the particle shader (`flipY=false`). Free, recognizable, and WKWebView has Apple Color Emoji.
+- **In-app purchase text:** App Store Connect limits the display name to 30 characters and the description to 45.
 - **Testing without a phone:** headless Chrome via Playwright (`/usr/bin/google-chrome`, swiftshader flags) can load `dist/game.html` with a fake `ReactNativeWebView` to test the bridge and take screenshots.
 
 ## Linedrive status (Nov 1, 2026)
