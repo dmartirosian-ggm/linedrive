@@ -194,6 +194,7 @@ export default function App() {
           javaScriptEnabled
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
+          ignoreSilentHardwareSwitch
           scrollEnabled={false}
           bounces={false}
           overScrollMode="never"

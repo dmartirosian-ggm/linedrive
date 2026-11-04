@@ -734,7 +734,7 @@ function frame(now){
   const t=now/1000;
   U.uTime.value=t;
   // beat
-  const bt=A.ctx?(A.ctx.currentTime-A.t0)*BPM/60:t*BPM/60;
+  const bt=A.started?(A.ctx.currentTime-A.t0)*BPM/60:t*BPM/60;
   const ph=((bt%1)+1)%1; U.uBeat.value=Math.exp(-ph*5)*(S.state==='run'?1:0.5);
 
   if(S.state==='dead'){S.deadT+=rdt;}
@@ -939,9 +939,13 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 
 /* ---------- audio ---------- */
 const A={ctx:null,t0:0,next:0,step:0,muted:store.get('ld_mute',false)};
-function initAudio(){
-  if(A.ctx){if(A.ctx.state==='suspended')A.ctx.resume();return;}
-  const C=window.AudioContext||window.webkitAudioContext; if(!C)return;
+// The context is created at load (suspended) so the MP3s decode before the first run;
+// the first tap resumes it and starts the scheduler.
+function ensureCtx(){
+  if(A.ctx)return true;
+  // iOS: play through the silent switch like a game, not as ambient web audio.
+  try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+  const C=window.AudioContext||window.webkitAudioContext; if(!C)return false;
   const ctx=new C(); A.ctx=ctx;
   A.master=ctx.createGain(); A.master.gain.value=A.muted?0:0.75;
   const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-16; comp.ratio.value=4; comp.attack.value=0.004; comp.release.value=0.2;
@@ -951,9 +955,16 @@ function initAudio(){
   A.sfx=ctx.createGain(); A.sfx.gain.value=0.55; A.sfx.connect(A.master);
   const nb=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate); const d=nb.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; A.noise=nb;
   A.trackGain=ctx.createGain(); A.trackGain.gain.value=0.62; A.trackGain.connect(A.lp);
-  A.t0=ctx.currentTime+0.06; A.next=A.t0; A.step=0;
-  setInterval(schedule,25);
   loadTracks();
+  return true;
+}
+function initAudio(){
+  if(!ensureCtx())return;
+  if(A.ctx.state!=='running')A.ctx.resume();
+  if(A.started)return;
+  A.started=true;
+  A.t0=A.ctx.currentTime+0.06; A.next=A.t0; A.step=0;
+  setInterval(schedule,25);
 }
 
 /* ---------- recorded music: one track per run, alternating ---------- */
@@ -983,7 +994,10 @@ function startTrack(){
   stopTrack();
   if(!A.ctx)return;
   const i=store.get('ld_track',0)%TRACKS.length, t=TRACKS[i];
-  if(!t.buffer){loadTrack(i);return;}        // not decoded yet: this run uses the synth
+  if(!t.buffer){                             // still decoding: synth now, track as soon as it's ready
+    if(!t.failed)loadTrack(i).then(()=>{if(S.state==='run'&&!A.track&&t.buffer)startTrack();});
+    return;
+  }
   store.set('ld_track',(i+1)%TRACKS.length); // next run gets the other track
   const src=A.ctx.createBufferSource(); src.buffer=t.buffer;
   src.loop=true; src.loopStart=0; src.loopEnd=Math.min(TRACK_LOOP,t.buffer.duration);
@@ -1000,7 +1014,8 @@ function stopTrack(){
   try{src.stop(now+0.09);}catch(e){}
   setTimeout(()=>{if(A.ctx){const t=A.ctx.currentTime;A.trackGain.gain.cancelScheduledValues(t);A.trackGain.gain.setValueAtTime(0.62,t);}},120);
 }
-document.addEventListener('visibilitychange',()=>{if(!A.ctx)return;if(document.hidden)A.ctx.suspend();else A.ctx.resume();});
+try{ensureCtx();}catch(e){}            // decode the tracks while the menu is up
+document.addEventListener('visibilitychange',()=>{if(!A.ctx||!A.started)return;if(document.hidden)A.ctx.suspend();else A.ctx.resume();});
 const ROOTS=[55,43.65,65.41,49.0], CH=[[0,3,7,12],[0,4,7,11],[0,4,7,12],[0,4,7,10]];
 function schedule(){
   const ctx=A.ctx; if(!ctx)return;
