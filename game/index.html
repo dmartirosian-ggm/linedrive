@@ -127,6 +127,8 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
 .toast.show{opacity:1}
 .count{margin-left:auto;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-variant-numeric:tabular-nums}
 .count b{color:#ffd23f}
+.tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto}
 .ghostbtn.new::after{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffd23f;margin-left:8px;vertical-align:middle;box-shadow:0 0 8px #ffd23f}
 .bar{width:100%;height:4px;background:rgba(255,255,255,.08);overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--hot),var(--ice));box-shadow:0 0 10px var(--ice)}
@@ -200,7 +202,7 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
 <div class="shop" id="shop" hidden>
   <div class="shop-in">
     <div class="shop-h"><h2>Locker</h2><span class="count" id="shopCount"></span><button class="iconbtn" id="shopClose" type="button">Close</button></div>
-    <div class="tabs" id="shopTabs" role="tablist"><button type="button" data-cat="box">Boxes</button><button type="button" data-cat="trail">Trails</button><button type="button" data-cat="world">Worlds</button></div>
+    <div class="tabs" id="shopTabs" role="tablist"><button type="button" data-cat="box">Boxes</button><button type="button" data-cat="trail">Trails</button><button type="button" data-cat="world">Worlds</button><button type="button" data-cat="paint">Tracks</button></div>
     <div class="bundle" id="bundle"><div><strong>Unlock everything</strong><p>Every box, trail and world in the Locker, premium and earned, unlocked now with one purchase. No ads, ever.</p></div><button type="button" id="bundleBuy">Unlock all</button></div>
     <div class="skins" id="skinGrid"></div>
     <div class="shop-foot"><span id="shopNote"></span><button class="linkbtn" id="restoreBtn" type="button">Restore purchases</button></div>
@@ -277,7 +279,27 @@ const WORLDS=[
 ];
 let worldId=store.get('ld_world','synth');
 const world=()=>WORLDS.find(w=>w.id===worldId)||WORLDS[0];
-let PALETTES=world().pal;
+// Tracks: paint jobs for the floor, rails and obstacles. floor: 0 grid, 1 checker, 2 stripes, 3 diamonds, 4 dots, 5 disco, 6 lava.
+// pal overrides the world's palette cycle; every = palette change interval in 100 m steps (default 3).
+const PAINTS=[
+  {id:'auto',name:'World Colors',how:'free',floor:0},
+  {id:'checker',name:'Checker Flag',how:'reach',need:250,floor:1,pal:[['#ff2850','#ffffff'],['#ffd23f','#ffffff'],['#19e3ff','#ffffff']]},
+  {id:'usa',name:'Stars & Stripes',how:'reach',need:500,theme:'USA',floor:2,pal:[['#ff2850','#ffffff'],['#2f6bff','#ff2850'],['#ffffff','#2f6bff']]},
+  {id:'rainbow',name:'Rainbow Rush',how:'tries',need:60,floor:0,every:1,pal:[['#ff2850','#ff9a1a'],['#ff9a1a','#ffd23f'],['#ffd23f','#3dff7a'],['#3dff7a','#19e3ff'],['#19e3ff','#8a5cff'],['#8a5cff','#ff4fd8']]},
+  {id:'toxic',name:'Toxic Waste',how:'close',need:75,floor:3,pal:[['#b24dff','#6dff3a'],['#6dff3a','#d6ff3a']]},
+  {id:'bubblegum',name:'Bubblegum',how:'jumps',need:1200,floor:4,pal:[['#ff5ad1','#7dfff0'],['#7dfff0','#ff8ad8'],['#fff07a','#ff5ad1']]},
+  {id:'ice',name:'Black Ice',how:'total',need:8000,floor:3,pal:[['#ffffff','#5ff4ff'],['#a8f5ff','#2f6bff']]},
+  {id:'blood',name:'Blood Moon',how:'tries',need:90,floor:0,pal:[['#ff1e3c','#ff6a00'],['#ff6a00','#ff1e3c']]},
+  {id:'gold',name:'Gold Rush',how:'reach',need:1400,floor:1,pal:[['#ffd23f','#ff9a1a'],['#fff3b8','#ffd23f']]},
+  {id:'ocean',name:'Deep Ocean',how:'close',need:200,floor:6,pal:[['#19e3ff','#2f6bff'],['#3dffc5','#19e3ff']]},
+  {id:'lava',name:'Lava Floor',how:'reach',need:2600,floor:6,pal:[['#ffd23f','#ff3d00'],['#ff9a1a','#ff1e3c']]},
+  {id:'mono',name:'Monochrome',how:'total',need:30000,floor:2,pal:[['#ffffff','#8a8a9a']]},
+  {id:'disco',name:'Disco Floor',how:'total',need:75000,floor:5,every:1,pal:[['#ff4fd8','#19e3ff'],['#ffd23f','#ff2850'],['#3dff7a','#8a5cff']]},
+];
+let paintId=store.get('ld_paint','auto');
+const paint=()=>PAINTS.find(p=>p.id===paintId)||PAINTS[0];
+const palEvery=()=>paint().every||3;
+let PALETTES=paint().pal||world().pal;
 const speedAt=d=>14+16*THREE.MathUtils.smoothstep(d,0,2200);
 
 /* ---------- renderer ---------- */
@@ -356,13 +378,15 @@ function edgeMat(colorUniform,{fill=0.12,alpha=1,near=30,far=150,transparent=fal
 }
 
 const floorMat=new THREE.ShaderMaterial({
-  uniforms:{uA:U.uA,uB:U.uB,uFog:U.uFog,uBeat:U.uBeat,uTime:U.uTime,uPlayer:U.uPlayer},
+  uniforms:{uA:U.uA,uB:U.uB,uFog:U.uFog,uBeat:U.uBeat,uTime:U.uTime,uPlayer:U.uPlayer,uFloor:{value:0}},
   extensions:{derivatives:true},
   vertexShader:`
   attribute float aHalf; varying vec3 vW; varying vec3 vL; varying float vHalf; varying float vDepth;
   void main(){ vL=position; vHalf=aHalf; vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vec4 mv=viewMatrix*w; vDepth=-mv.z; gl_Position=projectionMatrix*mv; }`,
   fragmentShader:`
-  uniform vec3 uA,uB,uFog,uPlayer; uniform float uBeat,uTime;
+  uniform vec3 uA,uB,uFog,uPlayer; uniform float uBeat,uTime,uFloor;
+  float hh(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+  vec3 hue(float h){ return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0); }
   varying vec3 vW; varying vec3 vL; varying float vHalf; varying float vDepth;
   float gl(float x,float w){ float f=fract(x); float d=min(f,1.0-f); float fw=fwidth(x)*w; return 1.0-smoothstep(0.0,fw,d); }
   void main(){
@@ -372,7 +396,21 @@ const floorMat=new THREE.ShaderMaterial({
     if(vL.y>0.29){
       float g=max(gl(vW.x+0.5,1.2),gl(vW.z*0.5,1.2));
       float sweep=exp(-pow(fract(-vW.z/24.0+uTime*0.6)-0.5,2.0)*180.0);
-      col+=uB*g*(0.38+uBeat*0.5+sweep*0.8);
+      float pulse=1.0+uBeat*0.6+sweep*0.8;
+      if(uFloor<0.5){ col+=uB*g*(0.38+uBeat*0.5+sweep*0.8); }
+      else {
+        vec2 cell=floor(vec2(vW.x+0.5,vW.z*0.5)); float chk=mod(cell.x+cell.y,2.0);
+        if(uFloor<1.5){ col+=mix(uA,uB,chk)*0.17*pulse; }
+        else if(uFloor<2.5){ float b=mod(floor(vW.z*0.25),2.0); col+=mix(uA,uB,b)*0.16*pulse; }
+        else if(uFloor<3.5){ float dg=max(gl((vW.x+vW.z*0.5)*0.6,1.4),gl((vW.x-vW.z*0.5)*0.6,1.4)); col+=uB*dg*0.5*pulse+uA*0.04; }
+        else if(uFloor<4.5){ vec2 q=fract(vec2(vW.x+0.5,vW.z*0.5))-0.5; float dq=length(q); float aa=fwidth(dq)*1.5;
+          col+=mix(uA,uB,chk)*(1.0-smoothstep(0.26-aa,0.26+aa,dq))*0.42*pulse; }
+        else if(uFloor<5.5){ float h=hh(cell+3.1); float on=step(0.35,fract(h*7.0+floor(uTime*2.133)*0.37));
+          col+=hue(h+uTime*0.05)*(0.12+0.3*on)*(1.0+uBeat*0.9); }
+        else { float n=sin(vW.x*1.3+uTime*0.9)*sin(vW.z*0.35-uTime*1.4)+0.6*sin((vW.x-vW.z*0.6)*0.8+uTime*0.7);
+          col+=mix(uB,uA,0.5+0.3*n)*(0.2+0.12*n)*(1.0+uBeat*0.4); }
+        col+=uB*g*0.14;
+      }
       float rail=smoothstep(3.28,3.5,abs(vW.x));
       col+=uA*rail*(2.0+uBeat);
       col+=uA*(1.0-smoothstep(0.0,0.14,edgeZ))*2.4;
@@ -796,7 +834,7 @@ const emberC=new THREE.Color('#ff6a00'), emberC2=new THREE.Color('#ffd23f'), rai
 const fwCache={};
 function fwColor(w){const list=w.fw||['#ffffff'];const h=list[Math.floor(Math.random()*list.length)];return fwCache[h]||(fwCache[h]=new THREE.Color(h));}
 function applyWorld(){
-  const w=world(); PALETTES=w.pal;
+  const w=world(), pt=paint(); PALETTES=pt.pal||w.pal; floorMat.uniforms.uFloor.value=pt.floor||0;
   const u=skyMat.uniforms;
   u.uSun.value=w.sun; u.uMtn.value=w.mtn; u.uStars.value=w.stars; u.uAurora.value=w.aurora||0;
   u.uTop.value.set(w.top); u.uMid.value.set(w.mid);
@@ -921,7 +959,7 @@ function frame(now){
     if(acc>0.1)acc=0;
     ensureCourse(S.pd+240); pruneCourse(S.pd);
     const m=Math.floor(S.pd/100);
-    if(m>S.lastMile&&S.alive){S.lastMile=m; popup(m*100+' m'); S.flash=Math.max(S.flash,0.18); S.milestonePulse=1; sfxChime(); haptic('success'); if(m%3===0){setPalette(m/3);}}
+    if(m>S.lastMile&&S.alive){S.lastMile=m; popup(m*100+' m'); S.flash=Math.max(S.flash,0.18); S.milestonePulse=1; sfxChime(); haptic('success'); if(m%palEvery()===0){setPalette(m/palEvery());}}
     S.score=Math.floor(S.pd);
   } else if(S.state==='menu'){
     ensureCourseMenu();
@@ -1336,8 +1374,9 @@ const CATS={
   box:{label:'Boxes',one:'box',items:SKINS,key:'ld_skin',def:'core'},
   trail:{label:'Trails',one:'trail',items:TRAILS,key:'ld_trail',def:'neon'},
   world:{label:'Worlds',one:'world',items:WORLDS,key:'ld_world',def:'synth'},
+  paint:{label:'Tracks',one:'track',items:PAINTS,key:'ld_paint',def:'auto'},
 };
-const ALL=[...SKINS,...TRAILS,...WORLDS];
+const ALL=[...SKINS,...TRAILS,...WORLDS,...PAINTS];
 const BUNDLE=PID+'skins.all';
 const white=new THREE.Color(1,1,1);
 let owned=new Set(store.get('ld_owned',[]));
@@ -1362,7 +1401,7 @@ const remaining=k=>Math.max(0,Math.ceil(k.need-STAT[k.how].v()));
 const unlockedSet=()=>new Set(ALL.filter(unlocked));
 function current(cat){const c=CATS[cat];return c.items.find(k=>k.id===eq[cat])||c.items[0];}
 function validate(){for(const cat in CATS){const c=CATS[cat];if(!eq[cat])eq[cat]=store.get(c.key,c.def);if(!unlocked(current(cat)))eq[cat]=c.def;}
-  if(worldId!==eq.world){worldId=eq.world;applyWorld();}}
+  if(worldId!==eq.world||paintId!==eq.paint){worldId=eq.world;paintId=eq.paint;applyWorld();}}
 const skin=()=>current('box'), trailItem=()=>current('trail');
 const skinCol={edge:new THREE.Color(1,1,1),core:new THREE.Color(1,1,1),t0:new THREE.Color(PALETTES[0][0]),t1:new THREE.Color(PALETTES[0][1])};
 
@@ -1456,12 +1495,28 @@ function swatchFor(cat,k){
       if(k.cycle){e.style.background='linear-gradient(90deg,transparent,'+k.cycle.join(',')+')';e.style.boxShadow='0 0 14px '+k.cycle[0];}
       else if(k.rainbow){e.style.background='linear-gradient(90deg,transparent,#ff2850,#ffd23f,#3dff7a,#19e3ff,#8a5cff)';e.style.boxShadow='0 0 14px #ff4fd8';}}
     sw.appendChild(e);
+  } else if(cat==='paint'){
+    sw.className='wsw psw'; sw.style.background=paintCSS(k);
   } else {
     sw.className='wsw';
     sw.style.background='linear-gradient(180deg,'+k.top+' 0%,'+k.mid+' 62%,'+k.pal[0][0]+' 63%,'+k.fog+' 100%)';
     const e=document.createElement('span'); e.textContent=k.icon; sw.appendChild(e);
   }
   return sw;
+}
+function paintCSS(k){
+  const p=(k.pal||world().pal)[0], A=p[0], B=p[1], bg='#0a0418';
+  const rails='linear-gradient(90deg,'+A+' 0 4px,transparent 4px calc(100% - 4px),'+A+' calc(100% - 4px))';
+  const pats=[
+    'linear-gradient(90deg,'+B+' 1px,transparent 1px) 0 0/16px 16px,linear-gradient('+B+' 1px,transparent 1px) 0 0/16px 16px',
+    'repeating-conic-gradient('+A+'55 0 25%,'+B+'55 0 50%) 0 0/22px 22px',
+    'repeating-linear-gradient(0deg,'+A+'66 0 8px,'+B+'66 8px 16px)',
+    'repeating-linear-gradient(45deg,'+B+'aa 0 1px,transparent 1px 11px),repeating-linear-gradient(-45deg,'+B+'aa 0 1px,transparent 1px 11px)',
+    'radial-gradient(circle,'+A+'aa 0 4px,transparent 5px) 0 0/16px 16px,radial-gradient(circle,'+B+'aa 0 4px,transparent 5px) 8px 8px/16px 16px',
+    'repeating-conic-gradient(#ff4fd8aa 0 25%,#19e3ffaa 0 50%) 0 0/22px 22px,conic-gradient(#ffd23f88,#3dff7a88,#8a5cff88,#ffd23f88)',
+    'radial-gradient(ellipse at 30% 40%,'+A+'cc,transparent 55%),radial-gradient(ellipse at 75% 70%,'+B+'cc,transparent 60%)',
+  ];
+  return rails+','+pats[k.floor||0]+','+bg;
 }
 function lockText(k){return STAT[k.how]?STAT[k.how].lock(k.need):'Premium';}
 const howRank=k=>k.how==='free'?0:(k.how==='buy'?2:1);
@@ -1501,12 +1556,12 @@ function renderShop(){
   el('shopNote').textContent=NATIVE?'One-time purchases. Any purchase also turns off ads. They restore on any device signed in to your Apple ID.':'Premium items are sold in the Linedrive iOS app.';
   el('restoreBtn').hidden=!NATIVE;
 }
-function equip(cat,id){eq[cat]=id;store.set(CATS[cat].key,id);if(cat==='world'){worldId=id;applyWorld();}haptic('select');renderShop();}
+function equip(cat,id){eq[cat]=id;store.set(CATS[cat].key,id);if(cat==='world'){worldId=id;applyWorld();}if(cat==='paint'){paintId=id;applyWorld();}haptic('select');renderShop();}
 function buy(pid){if(buying)return;buying=pid;haptic('light');send({t:'buy',id:pid});renderShop();}
 function setNewDot(on){store.set('ld_newdot',!!on);['skinsBtn','skinsBtn2'].forEach(id=>el(id).classList.toggle('new',!!on));}
 function openShop(){if(S.state==='run')return;setNewDot(false);renderShop();el('shop').hidden=false;haptic('select');}
 function closeShop(){el('shop').hidden=true;}
-function catOf(k){return SKINS.includes(k)?'box':(TRAILS.includes(k)?'trail':'world');}
+function catOf(k){return SKINS.includes(k)?'box':TRAILS.includes(k)?'trail':PAINTS.includes(k)?'paint':'world';}
 // Called after each run: announce anything that just unlocked from the run's stats.
 function announceUnlocks(pre){
   if(!pre)return;
