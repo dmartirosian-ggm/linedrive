@@ -125,6 +125,14 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
 .linkbtn{background:none;border:0;color:var(--ice);font:600 13px var(--ui);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:8px 0}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#fff;color:var(--void);font-weight:700;font-size:13px;letter-spacing:.12em;padding:10px 16px;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s;text-transform:uppercase;white-space:nowrap}
 .toast.show{opacity:1}
+.np{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%,-8px);font:600 12px var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:6px 12px;z-index:10;opacity:0;pointer-events:none;transition:opacity .4s,transform .4s;white-space:nowrap}
+.np.show{opacity:1;transform:translate(-50%,0)}
+.msw{height:66px;width:100%;border:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 12px;box-sizing:border-box;font-size:26px}
+.msw small{font:700 10px var(--ui);letter-spacing:.18em;text-transform:uppercase;color:#fff;opacity:.85}
+.skin .row2{display:flex;gap:6px;width:100%}
+.skin .row2 button{flex:1 1 0}
+.skin button.on{border-color:var(--ice);color:var(--ice)}
+.skin button.pv{flex:0 0 44px!important;padding:10px 0}
 .count{margin-left:auto;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-variant-numeric:tabular-nums}
 .count b{color:#ffd23f}
 .tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
@@ -202,13 +210,14 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
 <div class="shop" id="shop" hidden>
   <div class="shop-in">
     <div class="shop-h"><h2>Locker</h2><span class="count" id="shopCount"></span><button class="iconbtn" id="shopClose" type="button">Close</button></div>
-    <div class="tabs" id="shopTabs" role="tablist"><button type="button" data-cat="box">Boxes</button><button type="button" data-cat="trail">Trails</button><button type="button" data-cat="world">Worlds</button><button type="button" data-cat="paint">Tracks</button></div>
+    <div class="tabs" id="shopTabs" role="tablist"><button type="button" data-cat="box">Boxes</button><button type="button" data-cat="trail">Trails</button><button type="button" data-cat="world">Worlds</button><button type="button" data-cat="paint">Paint</button><button type="button" data-cat="music">Music</button></div>
     <div class="bundle" id="bundle"><div><strong>Unlock everything</strong><p>Every box, trail and world in the Locker, premium and earned, unlocked now with one purchase. No ads, ever.</p></div><button type="button" id="bundleBuy">Unlock all</button></div>
     <div class="skins" id="skinGrid"></div>
     <div class="shop-foot"><span id="shopNote"></span><button class="linkbtn" id="restoreBtn" type="button">Restore purchases</button></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="np" id="nowPlaying"></div>
 <div class="popup" id="popup"></div>
 <div class="close" id="closeTxt">CLOSE</div>
 <div class="pad stick" id="stick" aria-hidden="true"><div class="ring"></div><div class="rail"></div><div class="knob" id="knob"></div></div>
@@ -872,7 +881,7 @@ function die(){
   S.total+=sc; S.closes+=S.runClose; S.jumps+=S.runJumps;
   store.set('ld_total',S.total); store.set('ld_close',S.closes); store.set('ld_jumps',S.jumps);
   const pre=S.preUnl; S.preUnl=null;
-  setTimeout(()=>{showDead(sc,newBest);announceUnlocks(pre);},650);
+  setTimeout(()=>{showDead(sc,newBest);announceUnlocks(pre);preloadNext();},650);
   submitScore(sc);
 }
 function showDead(sc,newBest){
@@ -1191,7 +1200,7 @@ function ensureCtx(){
   A.sfx=ctx.createGain(); A.sfx.gain.value=0.55; A.sfx.connect(A.master);
   const nb=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate); const d=nb.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; A.noise=nb;
   A.trackGain=ctx.createGain(); A.trackGain.gain.value=0.62; A.trackGain.connect(A.lp);
-  loadTracks();
+  setTimeout(loadTracks,0);
   return true;
 }
 function initAudio(){
@@ -1203,45 +1212,97 @@ function initAudio(){
   setInterval(schedule,25);
 }
 
-/* ---------- recorded music: one track per run, alternating ---------- */
-// Both tracks are 128 BPM; the first downbeat lands TRACK_OFFSET s into the file.
-const TRACKS=[{name:'Arcade Velocity',file:'arcade-velocity.mp3'},{name:'Arcade Loop Run',file:'arcade-loop-run.mp3'}];
-const TRACK_OFFSET=0.037, TRACK_LOOP=256*60/BPM; // 256 beats = 120 s, loops on the bar
+/* ---------- recorded music: one unlockable song per run, shuffled from the player's queue ---------- */
+// Catalogue comes from game/music/tracks.json (embedded by the build). Every song is 128 BPM and loops
+// at 120 s; off = time of the first kick in the file, so the beat pulse lines up.
+// In the app the encoded files are native assets: the game asks for one (t:'track') and the app sends
+// it back in base64 chunks. In a browser they are fetched from assets/music.
+const TRACKS=(window.__LD_TRACKS||[]).map(t=>Object.assign({},t));
+const TRACK_LOOP=256*60/BPM; // 256 beats = 120 s, loops on the bar
+const MUSIC_BASE='../assets/music/';
 function b64ToBuf(b64){const bin=atob(b64),n=bin.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
 function decode(buf){return new Promise((res,rej)=>{try{const p=A.ctx.decodeAudioData(buf,res,rej);if(p&&p.then)p.then(res,rej);}catch(e){rej(e);}});}
-async function loadTrack(i){
-  const t=TRACKS[i]; if(t.buffer||t.loading)return t.loading;
-  t.loading=(async()=>{
-    try{
-      const emb=window.__LD_MUSIC&&window.__LD_MUSIC[t.file];
-      const buf=emb?b64ToBuf(emb):await (await fetch('music/'+t.file)).arrayBuffer();
-      t.buffer=await decode(buf);
-      if(window.__LD_MUSIC)delete window.__LD_MUSIC[t.file]; // free the encoded copy
-    }catch(e){t.failed=true;}
-  })();
+const trackWait={};
+handlers.trackChunk=m=>{const w=trackWait[m.id];if(!w)return;w.parts[m.i]=m.d;if(++w.got>=m.n){delete trackWait[m.id];w.res(b64ToBuf(w.parts.join('')));}};
+handlers.trackError=m=>{const w=trackWait[m.id];if(w){delete trackWait[m.id];w.rej(new Error(m.error||'load failed'));}};
+function fetchTrack(t){
+  if(NATIVE)return new Promise((res,rej)=>{trackWait[t.id]={parts:[],got:0,res,rej};send({t:'track',id:t.id});
+    setTimeout(()=>{if(trackWait[t.id]){delete trackWait[t.id];rej(new Error('timeout'));}},30000);});
+  return fetch(MUSIC_BASE+t.id+'.mp3').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();});
+}
+// A decoded 2-minute song is ~40 MB, so keep only the playing, next and previewed ones.
+let decoded=[];
+function keepDecoded(t){decoded=decoded.filter(x=>x!==t);decoded.push(t);
+  while(decoded.length>3){const old=decoded.find(x=>x!==A.cur&&x!==A.next&&x!==A.prevT);if(!old)break;old.buffer=null;decoded=decoded.filter(x=>x!==old);}}
+function loadTrack(t){
+  if(!t||t.buffer||!A.ctx)return Promise.resolve();
+  if(t.loading)return t.loading;
+  t.loading=(async()=>{try{t.buffer=await decode(await fetchTrack(t));t.failed=false;keepDecoded(t);}catch(e){t.failed=true;}t.loading=null;})();
   return t.loading;
 }
-async function loadTracks(){
-  const first=store.get('ld_track',0)%TRACKS.length;
-  await loadTrack(first);                    // the next run's track first
-  loadTrack((first+1)%TRACKS.length);        // then the other one
+// The queue: unlocked songs the player hasn't switched off in the Locker.
+function trackQueue(){
+  const off=new Set(store.get('ld_trackoff',[]));
+  const q=TRACKS.filter(t=>unlocked(t)&&!off.has(t.id)&&!t.failed);
+  return q.length?q:TRACKS.filter(t=>t.how==='free'&&!t.failed);
 }
+function pickNext(prev){
+  const q=trackQueue(); if(q.length<2)return q[0]||null;
+  const recent=store.get('ld_recent',[]);
+  const fresh=q.filter(t=>t!==prev&&!recent.includes(t.id));
+  const pool=fresh.length?fresh:q.filter(t=>t!==prev);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function preloadNext(){
+  const q=trackQueue();
+  if(!A.next||!q.includes(A.next)){A.next=TRACKS.find(t=>t.id===store.get('ld_next',''))||null;if(!A.next||!q.includes(A.next))A.next=pickNext(A.cur);}
+  if(A.next)store.set('ld_next',A.next.id);
+  return loadTrack(A.next);
+}
+function loadTracks(){preloadNext();}
 function startTrack(){
-  stopTrack();
+  stopTrack(); stopPreview();
   if(!A.ctx)return;
-  const i=store.get('ld_track',0)%TRACKS.length, t=TRACKS[i];
-  if(!t.buffer){                             // still decoding: synth now, track as soon as it's ready
-    if(!t.failed)loadTrack(i).then(()=>{if(S.state==='run'&&!A.track&&t.buffer)startTrack();});
+  preloadNext(); const t=A.next; if(!t)return;
+  if(!t.buffer){                             // still loading: synth now, song as soon as it's ready
+    loadTrack(t).then(()=>{if(S.state==='run'&&!A.track&&A.next===t){if(t.buffer)startTrack();else{A.next=null;startTrack();}}});
     return;
   }
-  store.set('ld_track',(i+1)%TRACKS.length); // next run gets the other track
+  A.cur=t;
+  const q=trackQueue(), rec=store.get('ld_recent',[]).filter(x=>x!==t.id); rec.push(t.id);
+  store.set('ld_recent',rec.slice(-Math.max(1,Math.min(6,q.length-1))));
+  A.next=pickNext(t); if(A.next)store.set('ld_next',A.next.id);
   const src=A.ctx.createBufferSource(); src.buffer=t.buffer;
   src.loop=true; src.loopStart=0; src.loopEnd=Math.min(TRACK_LOOP,t.buffer.duration);
   src.connect(A.trackGain);
   const at=A.ctx.currentTime+0.03; src.start(at,0);
   A.track=src; A.trackName=t.name;
-  A.t0=at+TRACK_OFFSET;                      // beat clock follows the track
+  A.t0=at+(t.off||0.05);                     // beat clock follows the song
+  nowPlaying(t);
 }
+// Locker preview: 15 s from the middle of the song.
+function stopPreview(){
+  if(!A.prevSrc)return; const s=A.prevSrc, g=A.prevGain; A.prevSrc=null; A.prevT=null;
+  try{const n=A.ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.linearRampToValueAtTime(0,n+0.15);s.stop(n+0.2);}catch(e){}
+  if(!el('shop').hidden)renderShop();
+}
+function previewTrack(t){
+  initAudio(); if(!A.ctx)return;
+  if(A.prevT===t){stopPreview();return;}
+  stopPreview(); A.prevT=t; renderShop();
+  loadTrack(t).then(()=>{
+    if(A.prevT!==t)return;
+    if(!t.buffer){A.prevT=null;toast('Could not load that song');renderShop();return;}
+    const s=A.ctx.createBufferSource(), g=A.ctx.createGain(); s.buffer=t.buffer; s.connect(g); g.connect(A.master);
+    const n=A.ctx.currentTime; g.gain.setValueAtTime(0,n); g.gain.linearRampToValueAtTime(0.62,n+0.3);
+    g.gain.setValueAtTime(0.62,n+14.2); g.gain.linearRampToValueAtTime(0,n+15);
+    s.start(n,Math.min(30,t.buffer.duration/3)); s.stop(n+15.05);
+    s.onended=()=>{if(A.prevSrc===s){A.prevSrc=null;A.prevT=null;if(!el('shop').hidden)renderShop();}};
+    A.prevSrc=s; A.prevGain=g; renderShop();
+  });
+}
+let npT=0;
+function nowPlaying(t){const e=el('nowPlaying');e.textContent='♪ '+t.name;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');clearTimeout(npT);npT=setTimeout(()=>e.classList.remove('show'),3200);}
 function stopTrack(){
   if(!A.track)return;
   const src=A.track, g=A.trackGain.gain, now=A.ctx.currentTime;
@@ -1259,7 +1320,7 @@ function schedule(){
 }
 function musicLevel(){ if(S.state==='menu')return 0; return 1+Math.min(3,Math.floor(S.pd/220)); }
 function playStep(st,time){
-  if(A.track)return;
+  if(A.track||A.prevSrc)return;
   const s=st%16, bar=Math.floor(st/16)%4, lv=musicLevel();
   if(s%4===0&&lv>=1)kick(time);
   if(lv===0&&s===0)kick(time,0.5);
@@ -1374,9 +1435,10 @@ const CATS={
   box:{label:'Boxes',one:'box',items:SKINS,key:'ld_skin',def:'core'},
   trail:{label:'Trails',one:'trail',items:TRAILS,key:'ld_trail',def:'neon'},
   world:{label:'Worlds',one:'world',items:WORLDS,key:'ld_world',def:'synth'},
-  paint:{label:'Tracks',one:'track',items:PAINTS,key:'ld_paint',def:'auto'},
+  paint:{label:'Paint',one:'paint job',items:PAINTS,key:'ld_paint',def:'auto'},
+  music:{label:'Music',one:'song',items:TRACKS,key:'ld_music',def:(TRACKS[0]||{}).id},
 };
-const ALL=[...SKINS,...TRAILS,...WORLDS,...PAINTS];
+const ALL=[...SKINS,...TRAILS,...WORLDS,...PAINTS,...TRACKS];
 const BUNDLE=PID+'skins.all';
 const white=new THREE.Color(1,1,1);
 let owned=new Set(store.get('ld_owned',[]));
@@ -1495,6 +1557,12 @@ function swatchFor(cat,k){
       if(k.cycle){e.style.background='linear-gradient(90deg,transparent,'+k.cycle.join(',')+')';e.style.boxShadow='0 0 14px '+k.cycle[0];}
       else if(k.rainbow){e.style.background='linear-gradient(90deg,transparent,#ff2850,#ffd23f,#3dff7a,#19e3ff,#8a5cff)';e.style.boxShadow='0 0 14px #ff4fd8';}}
     sw.appendChild(e);
+  } else if(cat==='music'){
+    const G={'Piano House':['🎹','#3a1a5e','#ff9a1a'],'Chiptune':['👾','#08304a','#3dff7a'],'Synthwave':['🌆','#2a0a3e','#ff2d95']}[k.genre]||['🎵','#1a0a2e','#19e3ff'];
+    const ic=k.theme==='Halloween'?'🎃':k.theme==='Holiday'?'❄️':G[0];
+    sw.className='msw'; sw.style.background='linear-gradient(120deg,'+G[1]+','+G[2]+'55)';
+    const e=document.createElement('span'); e.textContent=ic; const g=document.createElement('small'); g.textContent=k.genre||'';
+    sw.append(e,g);
   } else if(cat==='paint'){
     sw.className='wsw psw'; sw.style.background=paintCSS(k);
   } else {
@@ -1526,7 +1594,7 @@ function renderShop(){
   const cat=shopTab, all=allAccess();
   const items=CATS[cat].items.slice().sort((a,b)=>howRank(a)-howRank(b));
   for(const k of items){
-    const card=document.createElement('div'); card.className='skin'+(k.id===eq[cat]?' eq':'');
+    const card=document.createElement('div'); card.className='skin'+(k.id===eq[cat]&&cat!=='music'?' eq':'');
     const nm=document.createElement('b'); nm.textContent=k.name;
     const why=document.createElement('div'); why.className='why';
     if(k.theme){const tg=document.createElement('em');tg.className='theme';tg.textContent=k.theme;why.appendChild(tg);}
@@ -1535,7 +1603,17 @@ function renderShop(){
     let bar=null;
     const earned=STAT[k.how]&&STAT[k.how].v()>=k.need;
     const okText=()=>k.how==='free'?'Default':(earned?'Unlocked':'Owned');
-    if(k.id===eq[cat]){whyT.textContent=okText();btn.textContent='Equipped';btn.disabled=true;}
+    if(cat==='music'&&unlocked(k)){
+      const off=new Set(store.get('ld_trackoff',[])), inQ=!off.has(k.id);
+      whyT.textContent=A.cur===k&&S.state!=='menu'?'Last played':(k.how==='free'?'Starter':okText());
+      btn.textContent=inQ?'Queued':'Add'; btn.setAttribute('aria-pressed',String(inQ)); if(inQ)btn.className='on';
+      btn.onclick=()=>toggleQueue(k);
+      const pv=document.createElement('button'); pv.type='button'; pv.className='pv'; pv.setAttribute('aria-label',(A.prevT===k?'Stop ':'Preview ')+k.name);
+      pv.textContent=A.prevT===k?'■':'▶'; pv.onclick=e=>{e.stopPropagation();previewTrack(k);};
+      const row=document.createElement('div'); row.className='row2'; row.append(btn,pv);
+      card.append(swatchFor(cat,k),nm,why,row); g.appendChild(card); continue;
+    }
+    if(k.id===eq[cat]&&cat!=='music'){whyT.textContent=okText();btn.textContent='Equipped';btn.disabled=true;}
     else if(unlocked(k)){whyT.textContent=okText();btn.textContent='Equip';btn.onclick=()=>equip(cat,k.id);}
     else if(STAT[k.how]){whyT.textContent=lockText(k);btn.textContent=STAT[k.how].go(remaining(k));btn.disabled=true;
       bar=document.createElement('div');bar.className='bar';const f=document.createElement('i');f.style.width=(progress(k)*100).toFixed(1)+'%';bar.appendChild(f);}
@@ -1556,12 +1634,18 @@ function renderShop(){
   el('shopNote').textContent=NATIVE?'One-time purchases. Any purchase also turns off ads. They restore on any device signed in to your Apple ID.':'Premium items are sold in the Linedrive iOS app.';
   el('restoreBtn').hidden=!NATIVE;
 }
+function toggleQueue(k){
+  const off=new Set(store.get('ld_trackoff',[]));
+  if(off.has(k.id))off.delete(k.id);
+  else{ if(TRACKS.filter(t=>unlocked(t)&&!off.has(t.id)).length<=1){toast('Keep at least one song in the queue');return;} off.add(k.id); }
+  store.set('ld_trackoff',[...off]); if(A.next&&off.has(A.next.id))A.next=null; haptic('select'); renderShop();
+}
 function equip(cat,id){eq[cat]=id;store.set(CATS[cat].key,id);if(cat==='world'){worldId=id;applyWorld();}if(cat==='paint'){paintId=id;applyWorld();}haptic('select');renderShop();}
 function buy(pid){if(buying)return;buying=pid;haptic('light');send({t:'buy',id:pid});renderShop();}
 function setNewDot(on){store.set('ld_newdot',!!on);['skinsBtn','skinsBtn2'].forEach(id=>el(id).classList.toggle('new',!!on));}
 function openShop(){if(S.state==='run')return;setNewDot(false);renderShop();el('shop').hidden=false;haptic('select');}
-function closeShop(){el('shop').hidden=true;}
-function catOf(k){return SKINS.includes(k)?'box':TRAILS.includes(k)?'trail':PAINTS.includes(k)?'paint':'world';}
+function closeShop(){el('shop').hidden=true;stopPreview();}
+function catOf(k){return SKINS.includes(k)?'box':TRAILS.includes(k)?'trail':PAINTS.includes(k)?'paint':TRACKS.includes(k)?'music':'world';}
 // Called after each run: announce anything that just unlocked from the run's stats.
 function announceUnlocks(pre){
   if(!pre)return;
