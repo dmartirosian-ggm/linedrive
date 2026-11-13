@@ -1,0 +1,236 @@
+[
+ {
+  "src": "arcade-velocity.mp3",
+  "id": "arcade-velocity",
+  "name": "Arcade Velocity",
+  "genre": "Synthwave",
+  "how": "free",
+  "off": 0.055
+ },
+ {
+  "src": "arcade-loop-run.mp3",
+  "id": "arcade-loop-run",
+  "name": "Arcade Loop Run",
+  "genre": "Synthwave",
+  "how": "free",
+  "off": 0.044
+ },
+ {
+  "src": "High_Score_Circuit_2026-11-11T221639.mp3",
+  "id": "high-score-circuit",
+  "name": "High Score Circuit",
+  "genre": "Chiptune",
+  "how": "free",
+  "off": 0.007
+ },
+ {
+  "src": "Midnight_Keys_2026-11-11T222627.mp3",
+  "id": "midnight-keys",
+  "name": "Midnight Keys",
+  "genre": "Piano House",
+  "how": "free",
+  "off": 0.044
+ },
+ {
+  "src": "Arcade_Overdrive_2026-11-04T161901.mp3",
+  "id": "arcade-overdrive",
+  "name": "Arcade Overdrive",
+  "genre": "Synthwave",
+  "how": "tries",
+  "need": 5,
+  "off": 0.022
+ },
+ {
+  "src": "Midnight_Lap_2026-11-11T221509.mp3",
+  "id": "midnight-lap",
+  "name": "Midnight Lap",
+  "genre": "Piano House",
+  "how": "reach",
+  "need": 150,
+  "off": 0
+ },
+ {
+  "src": "Bitwave_Skyline_2026-11-11T221401.mp3",
+  "id": "bitwave-skyline",
+  "name": "Bitwave Skyline",
+  "genre": "Chiptune",
+  "how": "tries",
+  "need": 12,
+  "off": 0.016
+ },
+ {
+  "src": "After_Hours_Swing_2026-11-11T222423.mp3",
+  "id": "after-hours-swing",
+  "name": "After Hours Swing",
+  "genre": "Piano House",
+  "how": "reach",
+  "need": 350,
+  "off": 0.053
+ },
+ {
+  "src": "Arcade_Run_2026-11-04T161901.mp3",
+  "id": "arcade-run",
+  "name": "Arcade Run",
+  "genre": "Synthwave",
+  "how": "jumps",
+  "need": 300,
+  "off": 0
+ },
+ {
+  "src": "Arcade_Summer_Loop_2026-11-11T221849.mp3",
+  "id": "arcade-summer-loop",
+  "name": "Arcade Summer Loop",
+  "genre": "Chiptune",
+  "how": "tries",
+  "need": 20,
+  "off": 0
+ },
+ {
+  "src": "Midnight_Keyhouse_2026-11-11T222423.mp3",
+  "id": "midnight-keyhouse",
+  "name": "Midnight Keyhouse",
+  "genre": "Piano House",
+  "how": "total",
+  "need": 3000,
+  "off": 0.051
+ },
+ {
+  "src": "Arcade_Circuit_2026-11-11T221322.mp3",
+  "id": "arcade-circuit",
+  "name": "Arcade Circuit",
+  "genre": "Chiptune",
+  "how": "close",
+  "need": 30,
+  "off": 0
+ },
+ {
+  "src": "Midnight_Lounge_Drive_2026-11-11T222255.mp3",
+  "id": "midnight-lounge-drive",
+  "name": "Midnight Lounge Drive",
+  "genre": "Piano House",
+  "how": "reach",
+  "need": 550,
+  "off": 0.043
+ },
+ {
+  "src": "High_Score_Horizon_2026-11-11T221639.mp3",
+  "id": "high-score-horizon",
+  "name": "High Score Horizon",
+  "genre": "Chiptune",
+  "how": "tries",
+  "need": 35,
+  "off": 0.093
+ },
+ {
+  "src": "Winter_Arcade_Run_2026-11-04T162151.mp3",
+  "id": "winter-arcade-run",
+  "name": "Winter Arcade Run",
+  "genre": "Synthwave",
+  "how": "total",
+  "need": 6000,
+  "theme": "Holiday",
+  "off": 0.058
+ },
+ {
+  "src": "Midnight_Cocktail_Swing_2026-11-11T222255.mp3",
+  "id": "midnight-cocktail-swing",
+  "name": "Midnight Cocktail Swing",
+  "genre": "Piano House",
+  "how": "jumps",
+  "need": 800,
+  "off": 0.052
+ },
+ {
+  "src": "Arcade_After_Dark_2026-11-04T162058.mp3",
+  "id": "arcade-after-dark",
+  "name": "Arcade After Dark",
+  "genre": "Synthwave",
+  "how": "reach",
+  "need": 750,
+  "off": 0.071
+ },
+ {
+  "src": "Arcade_Haunt_2026-11-04T162002.mp3",
+  "id": "arcade-haunt",
+  "name": "Arcade Haunt",
+  "genre": "Synthwave",
+  "how": "close",
+  "need": 60,
+  "theme": "Halloween",
+  "off": 0.035
+ },
+ {
+  "src": "Gothic_Keep_Chase_2026-11-04T162443.mp3",
+  "id": "gothic-keep-chase",
+  "name": "Gothic Keep Chase",
+  "genre": "Synthwave",
+  "how": "reach",
+  "need": 950,
+  "theme": "Halloween",
+  "off": 0.026
+ },
+ {
+  "src": "Midnight_Compass_2026-11-11T222528.mp3",
+  "id": "midnight-compass",
+  "name": "Midnight Compass",
+  "genre": "Piano House",
+  "how": "tries",
+  "need": 60,
+  "off": 0.044
+ },
+ {
+  "src": "Arcade_Afterdark_2026-11-11T221736.mp3",
+  "id": "arcade-afterdark",
+  "name": "Arcade Afterdark",
+  "genre": "Chiptune",
+  "how": "total",
+  "need": 12000,
+  "off": 0
+ },
+ {
+  "src": "Victory_Cartridge_2026-11-11T222116.mp3",
+  "id": "victory-cartridge",
+  "name": "Victory Cartridge",
+  "genre": "Chiptune",
+  "how": "reach",
+  "need": 1100,
+  "off": 0.033
+ },
+ {
+  "src": "Midnight_Comping_2026-11-11T222528.mp3",
+  "id": "midnight-comping",
+  "name": "Midnight Comping",
+  "genre": "Piano House",
+  "how": "jumps",
+  "need": 1600,
+  "off": 0.062
+ },
+ {
+  "src": "Arcade_Summer_Loop_2026-11-11T221849 (1).mp3",
+  "id": "arcade-summer-loop-2",
+  "name": "Arcade Summer Loop II",
+  "genre": "Chiptune",
+  "how": "tries",
+  "need": 90,
+  "off": 0.052
+ },
+ {
+  "src": "Arcade_Haunt_2026-11-04T162002 (1).mp3",
+  "id": "arcade-haunt-2",
+  "name": "Arcade Haunt II",
+  "genre": "Synthwave",
+  "how": "close",
+  "need": 120,
+  "theme": "Halloween",
+  "off": 0.342
+ },
+ {
+  "src": "Boss_Fight_Circuit_2026-11-11T222020.mp3",
+  "id": "boss-fight-circuit",
+  "name": "Boss Fight Circuit",
+  "genre": "Chiptune",
+  "how": "reach",
+  "need": 1500,
+  "off": 0.041
+ }
+]

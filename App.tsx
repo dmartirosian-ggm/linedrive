@@ -5,6 +5,8 @@ import { WebView as RNWebView, type WebViewMessageEvent, type WebViewProps } fro
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync } from 'expo-audio';
+import { Asset } from 'expo-asset';
+import { File } from 'expo-file-system';
 import Purchases, {
   PRODUCT_CATEGORY,
   type CustomerInfo,
@@ -12,6 +14,7 @@ import Purchases, {
 } from 'react-native-purchases';
 
 import { GAME_HTML } from './src/gameHtml';
+import { MUSIC } from './src/musicAssets';
 import { LEADERBOARD_URL, PRODUCT_IDS, REVENUECAT_IOS_KEY } from './src/config';
 import { showInterstitial, startAds } from './src/ads';
 
@@ -30,6 +33,7 @@ type GameMessage =
   | { t: 'haptic'; s: string }
   | { t: 'buy'; id: string }
   | { t: 'restore' }
+  | { t: 'track'; id: string }
   | { t: 'adsOn' }
   | { t: 'ad' };
 
@@ -107,6 +111,25 @@ export default function App() {
     };
   }, [toGame]);
 
+  // Songs ship as native assets; the game asks for one before it plays it and gets the
+  // file back as base64 in chunks (one big injected string can stall the WebView).
+  const sendTrack = useCallback(
+    async (id: string) => {
+      try {
+        const mod = MUSIC[id];
+        if (mod === undefined) throw new Error('Unknown song ' + id);
+        const asset = await Asset.fromModule(mod).downloadAsync();
+        const b64 = await new File(asset.localUri ?? asset.uri).base64();
+        const size = 256 * 1024;
+        const n = Math.ceil(b64.length / size);
+        for (let i = 0; i < n; i++) toGame({ t: 'trackChunk', id, i, n, d: b64.slice(i * size, (i + 1) * size) });
+      } catch (e: any) {
+        toGame({ t: 'trackError', id, error: e?.message || 'load failed' });
+      }
+    },
+    [toGame]
+  );
+
   const buy = useCallback(
     async (id: string) => {
       if (!configurePurchases()) {
@@ -172,6 +195,9 @@ export default function App() {
         case 'restore':
           restore();
           break;
+        case 'track':
+          if (typeof msg.id === 'string') sendTrack(msg.id);
+          break;
         case 'adsOn':
           // Sent by the game only for players who haven't bought anything.
           startAds();
@@ -184,7 +210,7 @@ export default function App() {
           break;
       }
     },
-    [buy, persist, restore, sendStore]
+    [buy, persist, restore, sendStore, sendTrack]
   );
 
   const injected = useMemo(() => {
