@@ -88,7 +88,7 @@ The first build asks to link the Expo project and to sign in to your Apple accou
 
 Interstitial ads show between runs only: when the player taps Retry, at most once every 3 runs and 2 minutes, never in a session's first 3 runs. Any in-app purchase turns ads off. The first time ads are needed (after the second run), the app shows Google's consent form where the law requires it (EU/UK), then Apple's tracking prompt; players who decline get non-personalized ads.
 
-The app ships with Google's **test** IDs until you replace them:
+Real AdMob IDs are set (app ID in `app.json`, interstitial unit in `eas.json`). To set up ads for a new game:
 
 1. AdMob → Apps → Add app → iOS, "Linedrive Neon Runner". Copy the **App ID** (`ca-app-pub-…~…`) into `app.json` → plugin `react-native-google-mobile-ads` → `iosAppId`.
 2. In that app, Ad units → Add → **Interstitial**. Copy the **ad unit ID** (`ca-app-pub-…/…`) into `eas.json` → `build.base.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS`.
