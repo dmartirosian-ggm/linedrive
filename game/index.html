@@ -117,6 +117,8 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
 .wsw{height:66px;width:100%;border:1px solid var(--line);display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;box-sizing:border-box;font-size:22px}
 .skin .why{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .theme{font-style:normal;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#ffd23f;border:1px solid rgba(255,210,63,.5);padding:1px 5px}
+.bundle.pack{border-color:rgba(25,227,255,.45);background:linear-gradient(90deg,rgba(25,227,255,.10),rgba(25,227,255,.02))}
+.bundle.pack button{background:#19e3ff;color:#06121a}
 .bundle{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border:1px solid rgba(255,210,63,.55);background:linear-gradient(90deg,rgba(255,210,63,.12),rgba(255,45,149,.08));padding:14px 16px}
 .bundle p{margin:0;font-size:14px;color:var(--dim);max-width:44ch}
 .bundle strong{display:block;color:#fff;letter-spacing:.14em;text-transform:uppercase;font-size:15px;margin-bottom:2px}
@@ -211,7 +213,8 @@ input#tagInput{background:rgba(255,255,255,.04);border:1px solid var(--line);bor
   <div class="shop-in">
     <div class="shop-h"><h2>Locker</h2><span class="count" id="shopCount"></span><button class="iconbtn" id="shopClose" type="button">Close</button></div>
     <div class="tabs" id="shopTabs" role="tablist"><button type="button" data-cat="box">Boxes</button><button type="button" data-cat="trail">Trails</button><button type="button" data-cat="world">Worlds</button><button type="button" data-cat="paint">Paint</button><button type="button" data-cat="music">Music</button></div>
-    <div class="bundle" id="bundle"><div><strong>Unlock everything</strong><p>Every box, trail and world in the Locker, premium and earned, unlocked now with one purchase. No ads, ever.</p></div><button type="button" id="bundleBuy">Unlock all</button></div>
+    <div class="bundle" id="bundle"><div><strong>Unlock everything</strong><p>Every box, trail, world, paint job and song in the Locker, premium and earned, unlocked now with one purchase. No ads, ever.</p></div><button type="button" id="bundleBuy">Unlock all</button></div>
+    <div class="bundle pack" id="pack"><div><strong id="packTitle">All boxes</strong><p id="packDesc"></p></div><button type="button" id="packBuy">Unlock</button></div>
     <div class="skins" id="skinGrid"></div>
     <div class="shop-foot"><span id="shopNote"></span><button class="linkbtn" id="restoreBtn" type="button">Restore purchases</button></div>
   </div>
@@ -1466,6 +1469,8 @@ const CATS={
 };
 const ALL=[...SKINS,...TRAILS,...WORLDS,...PAINTS,...TRACKS];
 const BUNDLE=PID+'skins.all';
+// Category packs: each unlocks every item in its Locker tab (premium and earned). Paint is in Unlock All only.
+const PACKS={box:PID+'pack.boxes',trail:PID+'pack.trails',world:PID+'pack.worlds',music:PID+'pack.music'};
 const white=new THREE.Color(1,1,1);
 let owned=new Set(store.get('ld_owned',[]));
 let prices={}, storeReady=false, buying=null, shopTab='box';
@@ -1481,7 +1486,8 @@ const STAT={
 const allAccess=()=>owned.has(BUNDLE);
 function unlocked(k){
   if(k.how==='free'||allAccess())return true;
-  if(k.how==='buy')return owned.has(k.product);
+  const pk=PACKS[catOf(k)]; if(pk&&owned.has(pk))return true;
+  if(k.how==='buy')return !!k.product&&owned.has(k.product);
   const st=STAT[k.how]; return !!st&&st.v()>=k.need;
 }
 const progress=k=>STAT[k.how]?Math.min(1,STAT[k.how].v()/k.need):0;
@@ -1643,16 +1649,23 @@ function renderShop(){
     else if(unlocked(k)){whyT.textContent=okText();btn.textContent='Equip';btn.onclick=()=>equip(cat,k.id);}
     else if(STAT[k.how]){whyT.textContent=lockText(k);btn.textContent=STAT[k.how].go(remaining(k));btn.disabled=true;
       bar=document.createElement('div');bar.className='bar';const f=document.createElement('i');f.style.width=(progress(k)*100).toFixed(1)+'%';bar.appendChild(f);}
-    else{whyT.textContent='Premium';btn.className='buy';
+    else{const pk=PACKS[cat]||BUNDLE; whyT.textContent=PACKS[cat]?'In the '+CATS[cat].label+' pack':'In Unlock All';btn.className='buy';
       if(!NATIVE){btn.textContent='iOS app';btn.disabled=true;}
       else if(!storeReady){btn.textContent='Loading…';btn.disabled=true;}
-      else if(!prices[k.product]){btn.textContent='Unavailable';btn.disabled=true;}
-      else{btn.textContent=buying===k.product?'Buying…':prices[k.product];btn.disabled=!!buying;btn.onclick=()=>buy(k.product);}}
+      else if(!prices[pk]){btn.textContent='Unavailable';btn.disabled=true;}
+      else{btn.textContent=buying===pk?'Buying…':(PACKS[cat]?'Pack · ':'All · ')+prices[pk];btn.disabled=!!buying;btn.onclick=()=>buy(pk);}}
     card.append(swatchFor(cat,k),nm,why); if(bar)card.appendChild(bar); card.appendChild(btn); g.appendChild(card);
   }
   const have=ALL.filter(unlocked).length, sc=el('shopCount'); sc.textContent='';
   const hb=document.createElement('b'); hb.textContent=String(have); sc.append(hb,' / '+ALL.length+' unlocked');
   el('bundle').hidden=all||ALL.every(unlocked);
+  const pk=PACKS[cat], pb=el('packBuy');
+  el('pack').hidden=!pk||all||owned.has(pk)||CATS[cat].items.every(unlocked);
+  if(pk){el('packTitle').textContent='All '+CATS[cat].label.toLowerCase();
+    el('packDesc').textContent='Every '+CATS[cat].one+' in this tab, premium and earned, unlocked now. Also turns off ads.';
+    if(!NATIVE){pb.textContent='iOS app only';pb.disabled=true;}
+    else if(prices[pk]){pb.textContent=buying===pk?'Buying…':'Unlock · '+prices[pk];pb.disabled=!!buying;}
+    else{pb.textContent=storeReady?'Unavailable':'Loading…';pb.disabled=true;}}
   const bb=el('bundleBuy');
   if(!NATIVE){bb.textContent='iOS app only';bb.disabled=true;}
   else if(prices[BUNDLE]){bb.textContent=buying===BUNDLE?'Buying…':'Unlock all · '+prices[BUNDLE];bb.disabled=!!buying;}
@@ -1698,6 +1711,7 @@ function paintNextUnlock(){
 if(store.get('ld_newdot',false))setNewDot(true);
 document.querySelectorAll('#shopTabs button').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();shopTab=b.dataset.cat;haptic('select');renderShop();}));
 el('bundleBuy').addEventListener('click',()=>buy(BUNDLE));
+el('packBuy').addEventListener('click',()=>{const pk=PACKS[shopTab];if(pk)buy(pk);});
 el('restoreBtn').addEventListener('click',()=>{send({t:'restore'});toast('Restoring purchases…');});
 el('shopClose').addEventListener('click',e=>{e.stopPropagation();closeShop();});
 handlers.products=m=>{storeReady=true;prices={};(m.items||[]).forEach(p=>{prices[p.id]=p.price;});if(!el('shop').hidden)renderShop();};
@@ -1706,7 +1720,8 @@ handlers.buyResult=m=>{
   const pid=buying; buying=null;
   if(m.owned){owned=new Set(m.owned);store.set('ld_owned',[...owned]);}
   if(m.ok){haptic('success');S.flash=0.4;
-    toast(pid===BUNDLE?'Everything unlocked':'Unlocked');
+    const pc=Object.keys(PACKS).find(c=>PACKS[c]===pid);
+    toast(pid===BUNDLE?'Everything unlocked':(pc?'All '+CATS[pc].label.toLowerCase()+' unlocked':'Unlocked'));
     const k=ALL.find(x=>x.product===pid);if(k)equip(catOf(k),k.id);}
   else if(!m.cancelled)toast(m.error||'Purchase failed. Try again.');
   renderShop();
