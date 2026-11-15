@@ -37,8 +37,8 @@ Before load, the app injects `window.__LD_SAVE` (saved data) and `window.__LD_CO
 
 ## Monetization pattern
 
-- Non-consumable cosmetics in a tabbed Locker (boxes, trails, worlds): some free, some earned by distance or number of runs (gives free players goals), some paid at $0.99, plus an "unlock all" bundle ($4.99 for 13 items on Linedrive). Seasonal themes (Halloween, holiday) are cheap to add.
-- Product IDs: `com.gbymedia.<game>.skin.<name>`, `.trail.<name>`, `.world.<name>`, and `com.gbymedia.<game>.skins.all` for the bundle.
+- Non-consumable packs in a tabbed Locker: one pack per tab (Boxes, Trails, Worlds, Music at $1.99) that unlocks every item in that tab, premium and earned, plus an Unlock All bundle ($4.99) for everything. Most items are earned by playing, which gives free players goals. Packs keep App Review to 5 products instead of one per item.
+- Product IDs: `com.gbymedia.<game>.pack.<tab>` and `com.gbymedia.<game>.skins.all` for the bundle.
 - The app reads `customerInfo.allPurchasedProductIdentifiers` directly, so no RevenueCat entitlements or offerings are needed.
 - A Restore purchases button is required by App Review.
 
